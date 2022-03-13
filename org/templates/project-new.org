@@ -1,0 +1,20 @@
+* %^{Project name} [/]
+DEADLINE: %^t
+:PROPERTIES:
+:STARTDATE: %u
+:CATEGORY: %(js:categories:list:completing-read)
+:END:
+%^{GOAL}p
+
+** TODO Setup Project
+
+- [ ] Add project tags for context (e.g. work, personal).
+- [ ] Create a [[https://cloud.ertt.ca/f/1190][NextCloud project folder]].
+  #+BEGIN_SRC emacs-lisp
+    (mkdir (concat org-directory "/projects/" (nth 4 (org-heading-components))) :parents)
+  #+END_SRC
+- [ ] Create a [[https://cloud.ertt.ca/apps/bookmarks/#/folder/4][NextCloud bookmarks folder]].
+- [ ] List some action items.
+- [ ] Set at least one action to *NEXT* state.
+
+%?

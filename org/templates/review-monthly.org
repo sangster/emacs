@@ -1,0 +1,57 @@
+* Monthly Review
+:PROPERTIES:
+:SORT:     TYPE
+:END:
+
+** Review [[~/org/goals.org][Life Goals]]
+
+- [ ] Scroll through completed goals.
+- [ ] Move newly completed goals to "Completed" heading for archives.
+- [ ] Update timelines for existing goals.
+- [ ] Update wording/definition/scale of goals.
+- [ ] Add any new goals, and corresponding projects if needed.
+
+** Review Project List
+
+#+BEGIN_SRC emacs-lisp
+  (js:projects:overview)
+#+END_SRC
+
+- [ ] Archive any completed or inactive projects.
+- [ ] Update outcome for each project, making sure corresponding goal is listed
+  under each project in org-mode.
+- [ ] Order projects by general priority in org-mode.
+- [ ] Replicate updated Project List as needed.
+  - [ ] Nextcloud
+  - [ ] Documents Folder
+  - [ ] Bookmarks
+
+** Review Categories of Responsibility
+
+#+BEGIN_SRC emacs-lisp
+  (js:categories:overview)
+#+END_SRC
+
+- [ ] Evaluate categories and capture any new tasks, projects, habits, routines,
+  or decisions needed.
+- [ ] Replicate list of categories across systems.
+  - [ ] Nextcloud
+  - [ ] Documents Folder
+  - [ ] Bookmarks
+
+** Review and rearticulate [[https://joebalcom.blog/12-favorite-problems/][12 Favorite Problems]]
+** Review [[https://www.highlandsco.com/personal-vision-examples/][Personal Vision]]
+
+- [ ] Bold possible new projects or categories that need renewed focus.
+- [ ] Remove formatting of completed parts, as your dreams turn into reality.
+
+** Review Someday / Maybe list
+
+- [ ] Review [[file:~/org/someday.org][Someday/Maybe List]].
+- [ ] Assign next actions or new projects to any that I might want to consider
+  doing.
+
+** Add a TODO to contact someone you haven't talked to in a while
+** Re-prioritize tasks
+
+- [ ] Review next actions and re-apply priority tags, accounting for priority drift

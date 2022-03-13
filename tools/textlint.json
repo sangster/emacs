@@ -1,0 +1,11 @@
+{
+    "rules": {
+        "max-comma": true,
+        "sentence-length": true,
+        "unexpanded-acronym": {
+            "min_acronym_len": 3,
+            "ignore_acronyms": ["CSS", "HTML"]
+        },
+        "write-good": true
+    }
+}

@@ -1,0 +1,42 @@
+* Weekly Review
+** Get Clear [0/3]
+
+- [ ] Collect Loose Papers and Materials
+- [ ] Get all inboxes to Zero
+  - [ ] Physical papers (scan and recycle the important ones)
+  - [ ] Physical Objects
+  - [ ] Text Messages
+  - [ ] Email Inboxes
+    #+BEGIN_SRC emacs-lisp
+      (mu4e)
+    #+END_SRC
+  - [ ] Browser Tabs
+  - [ ] Downloads Folder
+    #+BEGIN_SRC emacs-lisp
+      (dired "~/in/")
+    #+END_SRC
+- [ ] Empty Your Head: New projects, tasks, waiting-fors, someday/maybes?
+
+** Get Current [0/6]
+
+- [ ] Review Action Lists:
+  #+BEGIN_SRC emacs-lisp
+    (let ((org-agenda-files '("~/org/todo.org")))
+      (org-agenda "TODO" "T")
+      (beginend-org-agenda-mode-goto-beginning))
+  #+END_SRC
+- [ ] Review Waiting For List:
+  #+BEGIN_SRC emacs-lisp
+    (org-agenda "WAITING" "T")
+  #+END_SRC
+- [ ] Review Project (and Larger Outcome) Lists:
+  #+BEGIN_SRC emacs-lisp
+    (js:projects:overview)
+    (js:projects:overview:deadlines)
+  #+END_SRC
+- [ ] Review Stuck Projects:
+  #+BEGIN_SRC emacs-lisp
+    (js:org-agenda:list-stuck-projects)
+  #+END_SRC
+- [ ] Archive completed or inactive projects.
+- [ ] Update Budget

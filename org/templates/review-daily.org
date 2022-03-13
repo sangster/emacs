@@ -1,0 +1,21 @@
+* Daily Review
+
+- [ ] Clear Physical Desktop / Inbox / Notebook
+- [ ] Clear Downloads and Temporary files
+  #+BEGIN_SRC emacs-lisp
+  (dired "~/in/")
+  #+END_SRC
+- [ ] Clear Email Inboxes
+  #+BEGIN_SRC emacs-lisp
+  (mu4e)
+  #+END_SRC
+- [ ] Process streams (Slack, IMs) as inboxes - record tasks, read it later, file notes
+- [ ] Capture any remaining open loops as tasks
+- [ ] Schedule + refile tasks in [[file:~/org/todo.org][Org Mode Inbox]]
+- [ ] Schedule today's tasks
+  #+BEGIN_SRC emacs-lisp
+    (progn
+      (org-agenda nil "a")
+      (org-agenda-day-view))
+  #+END_SRC
+- [ ] Clock out.

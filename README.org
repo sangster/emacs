@@ -1,0 +1,3385 @@
+#+TITLE: Jon Sangster's Emacs Config
+#+OPTIONS: toc:4 h:4
+#+PROPERTY: header-args :results output silent
+#+STARTUP: content
+
+* Welcome
+
+Welcome to my [[https://www.gnu.org/software/emacs/][Emacs]] configuration file! I use Emacs often, and have for quite
+some time now. As a consequence, this config has gotten large and fit to my
+particular preferences. I don't expect (or recommend) that you use it in its
+entirety, but I've decided to share it in the hope that you can skim it and
+extract a few good ideas or code-snippets to improve your own config. Good luck!
+
+If you do use large parts of this config file, make sure to peruse the
+=js:custom= customisation group and use the menus to change the settings. You
+don't want to start sending emails with my name in the From line! If you're new
+to Emacs, move your cursor inside the following source-block and hit =C-c C-c=
+(ie: press =Control + C=, twice).
+
+#+begin_src emacs-lisp :tangle no
+  (customize-group 'js:custom)
+#+end_src
+
+** What I use Emacs for
+
+After using [[https://www.vim.org/][Vim]] as my daily text editor for over 15 years, these days I
+exclusively use Emacs. I still feel that Vim is a better /text editor/, but
+Emacs is a "text editor" in the same way that aircraft carriers are "vehicles."
+Emacs has a way of slowly taking over the responsibilities of every other app on
+your machine. As Emacs continues to take over my life, I'm sure this config file
+will grow, but at this time, this file configures Emacs to be a:
+
+- Lightweight IDE for many different programming languages.
+- Email client.
+- Note-taking system.
+- Static website generator.
+- Calendar.
+- TODO list / agenda manager.
+- [[https://git-scm.com/][git]] client.
+- Slideshow editor.
+- File manager.
+- Spreadsheet editor.
+- UML diagram editor.
+- Personal knowledge base.
+- Journaling tool.
+
+If you want to use Emacs for any of these activities, you /may/ find something
+interesting in this config file.
+
+** The most important concepts
+
+For the most part, you can ignore the sections of this config that cover topics
+that don't concern you. You don't need to know what =magit= is, if you don't
+plan to use Emacs for =git=. However, there are a few concepts that permeate
+this config.
+
+*** org-mode
+
+I'm sure by now, all my chatter has tipped you off that this isn't a typical
+config file. Emacs is typically configured with an [[https://www.gnu.org/software/emacs/manual/html_node/elisp/][emacs-lisp]] (=.el=) file, but
+this file is instead, an [[https://orgmode.org/][org-mode]] (=.org=) file. org-mode is a markup language
+(like [[https://daringfireball.net/projects/markdown/][Markdown]] but more powerful) that lets us write this config file in the
+[[https://en.wikipedia.org/wiki/Literate_programming][literate programming]] style.
+
+Emacs—especially when including the constellation of available packages, is
+massive. A year after you've added something, you're not going to remember
+exactly how it works, or what you did =X= instead of =Y=. By using org-mode, we
+can split this config into logical sections and make as many notes as are
+needed.
+
+*** use-package
+
+The Emacs package, [[https://github.com/jwiegley/use-package][use-package]], provides a tidy and convenient function for
+configuring third-party packages, and this config uses dozens of those.
+
+*** straight.el
+
+The Emacs package, [[https://github.com/raxod502/straight.el][straight.el]], provides a package manager that integrates with
+use-package. If you call use-package on a package that isn't installed,
+straight.el will download and build it for you automatically.
+
+straight.el comes with a community-maintained list of "recipes" for the most
+popular packages, so it's usually invisible. If you want to use a private/rare
+package, you'll need to tell straight how to download it.
+
+* Setup
+** Load this file in your Emacs "Init File"
+
+To use this =.org= file as your Emacs config, you need to setup your [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Find-Init.html][Emacs Init
+File]] to bootstraps =org-mode= and use =babel= to compile it into emacs-lisp. The
+example Init File, shown below, will do this for you. The version I'm using
+these days (see [[file:init.el]]) is a bit more complex, but this simple version is
+more suitable in most cases.
+
+*** Example "Init File"
+
+This example Emacs Init File ensures that straight.el, use-package, and org-mode
+are installed. It then compiles this file (=README.org=) into emacs-lisp code,
+and loads it into Emacs. At this point, you're good to go!
+
+#+begin_src emacs-lisp :tangle no
+  ;; 1. Load straight.el: Package manager.
+  ;;    (https://github.com/raxod502/straight.el)
+  (setq straight-use-package-by-default t)
+  (defvar bootstrap-version)
+  (let ((bootstrap-file
+         (locate-user-emacs-file "straight/repos/straight.el/bootstrap.el"))
+        (bootstrap-version 5))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+          (url-retrieve-synchronously
+           "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+           'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+
+  ;; 2. Load use-package: Package configuration manager.
+  (straight-use-package 'use-package)
+
+  ;; 3. Load org-mode: To compile our config file.
+  (use-package org :ensure org-plus-contrib)
+
+  ;; 4. Compile ("tangle") and load the org-mode config file.
+  (org-babel-load-file (locate-user-emacs-file "README.org"))
+#+end_src
+** Runtime dependencies
+This config file pulls in many third-party packages that require additional
+programs to be installed. For instance, Emacs' git UI (magit) needs git to be
+installed (duh!) and the org-plantuml package needs plantuml (duh!!).
+
+If you happen to use NixOS or the Nix package manager, you can use the [[file:flake.nix][Nix Flake]]
+that comes with this project. This flake will build a version of Emacs that
+comes pre-installed with all the necessary dependencies.
+
+If you use a different package manager, here is a (probably out-of-date) list of
+third-party dependencies:
+
+- [[https://github.com/domtronn/all-the-icons.el][all-the-icons]] :: Several nice icon-fonts.
+- [[https://www.haskell.org/cabal/][Cabal]] :: A Haskell build tool.
+- [[https://deno.land/][deno]] :: For [[https://emacs-lsp.github.io/lsp-mode/][LSP]]'s JavaScript support.
+- [[https://eslint.org/][eslint]] :: For Flycheck's JavaScript support.
+- [[https://exiv2.org/][exiv2]] :: Extracts metadata from image files.
+- [[https://git-scm.com/][git]] :: For both straight.el and magit.
+- [[https://github.com/haskell/haskell-language-server][haskell-language-server]] :: For LSP's Haskell support.
+- [[https://hackage.haskell.org/package/hlint][hlint]] :: For [[https://www.flycheck.org/en/latest/][Flycheck]]'s Haskell support.
+- [[https://imagemagick.org/][ImageMagick]] :: Used to manipulate images when generating static websites.
+- [[https://isync.sourceforge.io/][isync]] :: Email IMAP client.
+- [[https://github.com/zaach/jsonlint][jsonlint]] :: For Flycheck's JSON support.
+- [[https://marlam.de/msmtp/][msmtp]] :: Email SMTP client.
+- [[https://www.djcbsoftware.nl/code/mu/][mu]] :: Email indexer (See mu4e).
+- [[https://fletcher.github.io/MultiMarkdown-6/][MultiMarkdown]] :: For [[https://github.com/jrblevin/markdown-mode][markdown-mode]].
+- [[https://github.com/Synthetica9/nix-linter][nix-linter]] :: For Flycheck's Nix support.
+- [[https://plantuml.com/][PlantUML]] :: A UML diagram generator. *Sub-dependencies:* [[https://openjdk.java.net/][Java]] and [[https://graphviz.org][Graphviz]].
+- [[https://postcss.org/][postcss]] :: For Flycheck's CSS and SCSS support.
+- [[http://proselint.com/][proselint]] :: For Flycheck's plaintext support.
+- [[https://github.com/nix-community/rnix-lsp][rnix-lsp]] :: For LSP's Nix support.
+- [[https://rubocop.org][rubocop]] :: For Flycheck's ruby support.
+- [[https://github.com/rubocop/rubocop-rails/][rubocop-rails]] :: For Flycheck's [[https://rubyonrails.org][Ruby on Rails]] support.
+- [[https://github.com/standard/semistandard][semistandard]] :: For Flycheck's JavaScript support (a second one).
+- [[https://solargraph.org/][Solargraph]] :: For LSP's ruby support.
+- [[https://stylelint.io][stylelint]] :: For Flycheck's CSS support (a second one).
+- [[https://tug.org/texlive][TeX Live]] :: So org-mode can export LaTeX files.
+- [[https://github.com/textlint/textlint][textlint]] :: For Flycheck's plaintext support (a second one).
+- [[https://github.com/vscode-langservers/vscode-css-languageserver-bin][vscode-css-languageserver-bin]] :: For LSP's CSS support.
+- [[https://github.com/vscode-langservers/vscode-html-languageserver-bin][vscode-html-languageserver-bin]] :: For LSP's HTML support.
+- [[https://freedesktop.org/wiki/Software/xdg-utils][xdg-utils]] :: Allows =dired= to open files with the correct program.
+
+** Running Emacs as a daemon
+When you weigh Emacs down with dozens of packages, it can take 5-6 seconds to
+start up. This is far, far too long. Fortunately, we can get away with just
+starting Emacs a single time, by running it as a [[https://www.freedesktop.org/software/systemd/man/user@.service.html][systemd user service]].
+
+Once you have the Emacs service running, you can connect to it by running
+=emacsclient -c=. If you don't want a GUI window, and want to edit a file on the
+console, you can instead use =emacsclient -c --tty=. It should open instantly. I
+find it handy to create shell aliases for these two commands:
+
+#+begin_src shell :tangle no
+  alias e="emacsclient -c --tty" # Open Emacs on the terminal.
+  alias eg="emacsclient -c"      # Open Emacs in a GUI.
+#+end_src
+
+*** Example Emacs service unit
+
+*Path:* =~/.config/systemd/user/emacs.service=
+
+#+begin_src conf :tangle no
+[Unit]
+Description=Emacs text editor
+Documentation=info:emacs man:emacs(1) https://gnu.org/software/emacs/
+X-RestartIfChanged=false
+
+[Service]
+ExecStart=bash -l -c "emacs --fg-daemon"
+Restart=on-failure
+SuccessExitStatus=15
+Type=notify
+
+[Install]
+WantedBy=default.target
+#+end_src
+
+With this file in place, you can enable the service with:
+
+#+begin_src shell :tangle no
+  systemctl --user daemon-reload
+  systemctl --user --now enable emacs
+#+end_src
+
+*** Running separate GUI and TTY daemons
+
+After running Emacs as a service for a few months, I noticed a problem. If you
+simultaneously connect to the daemon with both GUI /and/ TTY clients, things can
+start to go a bit haywire—double-so if you're connected over SSH.
+
+One common problem was windows appearing in the wrong client. I might open the
+minibuffer in the GUI client, but it would actually appear on the TTY client.
+Or, I'd open a new file in the TTY client, but it would instead appear in the
+GUI window. Confusing!
+
+A good solution I found for this was to run a second Emacs service, only for the
+TTY clients. It means you can't share windows between the TTY and GUI clients,
+but I never want to do that anyway.
+
+The systemd user service for the TTY-only Emacs daemon is the same as the one
+above, with the exception of one line. We give this daemon's socket a different
+name, to differentiate it, and tell Emacs to start without GUI support.
+
+#+begin_src conf :tangle no
+  ExecStart=bash -l -c "emacs --fg-daemon=tty --no-window-system"
+#+end_src
+
+Once this system service is installed and running, we can connect to it, by
+specifying its socket name:
+
+#+begin_src shell :tangle no
+  emacsclient -c --tty -s 'tty'
+#+end_src
+
+We can update our shell aliases, and we're off to the races.
+
+#+begin_src shell :tangle no
+  alias e="emacsclient -c --tty -s 'tty'"
+  alias eg="emacsclient -c"
+#+end_src
+
+** Custom settings file
+One-off or host-specific settings usually wind up in =custom.el=.
+
+Emacs provides a settings-management feature known as "Customisations." While
+most customisation comes from this config file, Emacs can automatically maintain
+a list of "overrides" that supersede theme. These overrides are stored in an
+external =emacs-lisp= file which Emacs automatically updates (see =(customize)=).
+
+From what I read online, a lot of people disable this feature, but I find it be
+valuable. I use Emacs on a few different machines, no two of which are exactly
+the same. Having a method to implement minor, host-specific tweaks is handy!
+Moreover, it keeps this file from being clutter with host-specific edge-cases.
+
+#+BEGIN_SRC emacs-lisp
+  (setq custom-file (locate-user-emacs-file "custom.el"))
+  (when (file-readable-p custom-file) (load custom-file))
+#+END_SRC
+** General purpose Emacs libraries & functions
+*** =s.el=
+
+#+begin_quote
+  The long lost Emacs string manipulation library.
+#+end_quote
+
+[[https://github.com/magnars/s.el][s.el]] provides useful string manipulation functions, used in this config.
+
+#+begin_src emacs-lisp
+  (use-package s)
+#+end_src
+
+*** =f.el=
+
+#+begin_quote
+  [[https://github.com/rejeep/f.el][f.el]] is a modern API for working with files and directories in Emacs.
+#+end_quote
+
+#+begin_src emacs-lisp
+  (use-package f)
+#+end_src
+
+*** Find executables in =$PATH=
+
+If you have features that rely on apps being installed, it can be handy to know
+if they're available on the =$PATH=.
+
+#+begin_src emacs-lisp
+  (defun js:path:find-exe (name)
+    "Return the absolute path to NAME in `$PATH', or `nil'."
+    (locate-file name exec-path exec-suffixes 'executable))
+#+end_src
+
+From [[https://emacs.stackexchange.com/a/26081][How can I find the path to an executable with Emacs Lisp?]]
+
+#+begin_src emacs-lisp
+  (defmacro js:macro:call-path-exe (name &rest args)
+    "Call NAME with ARGS command-line arguments, if NAME is on
+    `$PATH', otherwise return `nil'."
+    `(let ((path (js:path:find-exe ,name)))
+       (when path ,(append `(start-process ,name nil path) args))))
+#+end_src
+
+#+begin_src emacs-lisp
+  (defmacro js:macro:call-path-exe+ (name &rest args)
+    "Call NAME with ARGS command-line arguments, if NAME is on
+  `$PATH', otherwise raise an `error'."
+    `(let ((path (js:path:find-exe ,name)))
+       (if path ,(append `(start-process ,name nil path) args)
+         (error ,(format "'%s' is not in $PATH" name)))))
+#+end_src
+
+** XDG directories
+
+These common directories may be useful. See [[https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html][XDG Base Directory Specification]].
+
+#+begin_src emacs-lisp
+  (defvar xdg/cache-home  (or (getenv "XDG_CACHE_HOME")  "~/.cache")
+   "The value of environmental variable, $XDG_CACHE_HOME.")
+  (defvar xdg/config-home (or (getenv "XDG_CONFIG_HOME") "~/.config")
+   "The value of environmental variable, $XDG_CONFIG_HOME.")
+  (defvar xdg/data-home   (or (getenv "XDG_DATA_HOME")   "~/.local/share")
+   "The value of environmental variable, $XDG_DATA_HOME.")
+  (defvar xdg/state-home  (or (getenv "XDG_STATE_HOME")  "~/.local/state")
+   "The value of environmental variable, $XDG_STATE_HOME.")
+  (defvar xdg/runtime-dir (getenv "XDG_RUNTIME_DIR")
+   "The value of environmental variable, $XDG_RUNTIME_DIR.")
+#+end_src
+
+** Backup directory
+
+To help you avoid losing unsaved changes, Emacs will create backup files as you
+edit. This is great, but it normally dumps these files right beside the file
+you're editing, littering up the filesystem. Instead, lets have Emacs save them
+all in =$XDG_CACHE_HOME/emacs/=.
+
+Note that Emacs doesn't backup files already under version control (like git),
+unless you =(setq vc-make-backup-files t)=.
+
+#+BEGIN_SRC emacs-lisp
+  (let ((cache-dir (expand-file-name "emacs/backup" xdg/cache-home)))
+    (make-directory cache-dir t)
+    (customize-set-variable 'backup-directory-alist `(("." . ,cache-dir)))
+
+    (custom-set-variables
+     '(delete-old-versions t)  ; Automatically delete excess backups.
+     '(kept-new-versions 20)
+     '(kept-old-versions 10))
+     '(version-control t))     ; Use version numbers on backups.
+#+END_SRC
+
+*** inotify-friendly backups
+
+Emacs' default method of making backups is to move the existing file into the
+backup folder, then create a new local file. If you're using =inotify-wait=, or
+any tools that trigger an action when you save your files, this method will
+trick those tools into thinking you've updated your file every time it makes a
+backup.
+
+#+begin_src emacs-lisp
+  (customize-set-variable 'backup-by-copying t)
+#+end_src
+
+** Personal Customisations
+
+There are some types of configuration that we don't necessary want to hard-code
+in this config file. For instance: if you want to use this config on multiple
+computers and want to use different font sizes, or you want to share your config
+with friends and don't want them to accidentally copy/paste your email address
+into their email settings.
+
+For these types of things, we can define personal customisations. Like other
+customisations, these settings will be automatically stored in =custom.el=: a
+=.gitignore= file. Feel safe to run =(customize-group 'js:custom)= and enter
+whatever data you like.
+
+#+begin_src emacs-lisp
+  (defgroup js:custom nil
+    "Customizations defined in the README.org config file."
+    :tag "README.org customizations"
+    :link `(file-link ,(locate-user-emacs-file "README.org"))
+    :group 'emacs)
+#+end_src
+
+* UI (terminal & GUI)
+** Fontset
+
+I usually choose a particular "programming font" to serve as my default Emacs
+font. Fortunately, we can configure Emacs to use fallback fonts for ranges of
+unicode charpoints.
+
+#+begin_src emacs-lisp
+  (defgroup js:fonts nil
+    "Fonts"
+    :tag "Fonts"
+    :group 'js:custom)
+#+end_src
+
+*** Han
+
+#+begin_src emacs-lisp
+  (defcustom js:fonts:han "Noto Sans CJK"
+    "A font to render Han characters."
+    :tag "Han Font"
+    :group 'js:fonts
+    :type 'string)
+#+end_src
+
+#+begin_src emacs-lisp
+  (defun js:fonts:set-fallbacks:han (&optional frame)
+    (set-fontset-font "fontset-default" 'han
+                      (font-spec :name js:fonts:han) frame))
+#+end_src
+
+*** Emoji
+
+Emoji characters seem to be spread around, and not every font supports every
+icon. For emoji, we'll specify an particular emoji font to use for particular
+code points.
+
+#+begin_src emacs-lisp
+  (defcustom js:fonts:emoji "Noto Color Emoji"
+    "A font to render emoji characters."
+    :tag "Emoji Font"
+    :group 'js:fonts
+    :type 'string)
+#+end_src
+
+#+begin_src emacs-lisp
+  (defcustom js:fonts:emoji-charpoints
+    '(#x203c #x2049 #x20e3 #x2139 (#x21a9 . #x21aa) (#x231a . #x231b) #x2328
+      #x23cf (#x23e9 . #x23f3) (#x23f8 . #x23fa) #x24c2 (#x25fb . #x25fe)
+      (#x2600 . #x2604) #x260e #x2611 (#x2614 . #x2615) #x2618 #x261d #x2620
+      (#x2622 . #x2623) #x2626 #x262a (#x262e . #x262f) (#x2638 . #x263a) #x2640
+      #x2642 (#x2648 . #x2653) (#x265f . #x2660) #x2663 (#x2665 . #x2666) #x2668
+      #x267b (#x267e . #x267f) (#x2692 . #x2697) #x2699 (#x269b . #x269c) #x26a7
+      (#x26aa . #x26ab) (#x26b0 . #x26b1) (#x26bd . #x26be) (#x26c4 . #x26c5)
+      #x26c8 (#x26ce . #x26cf) #x26d1 (#x26d3 . #x26d4) (#x26e9 . #x26ea)
+      (#x26f0 . #x26f5) (#x26f7 . #x26fa) #x26fd #x2702 #x2705 (#x2708 . #x270d)
+      #x270f #x2712 #x2714 #x2716 #x271d #x2721 #x2728 (#x2733 . #x2734) #x2744
+      #x2747 #x274c #x274e (#x2753 . #x2755) #x2757 (#x2763 . #x2764)
+      (#x2795 . #x2797) #x27a1 #x27b0 #x27bf (#x2934 . #x2935) (#x2b05 . #x2b07)
+      (#x2b1b . #x2b1c) #x2b50 #x2b55 #x3030 #x303d #x3297 #x3299
+      (#x1f000 . #xff000))
+    "A fontface to render Emoji characters."
+    :tag "Emoji font charpoints"
+    :group 'js:fonts
+    :type '(repeat (radio (integer :tag "Codepoint")
+                          (cons :tag "Range"
+                                (integer :tag "First")
+                                (integer :tag "Last")))))
+#+end_src
+
+#+begin_src emacs-lisp
+  (defun js:fonts:set-fallbacks:emoji (&optional frame)
+    (let ((font (font-spec :name js:fonts:emoji)))
+      (dolist (chars js:fonts:emoji-charpoints)
+        (set-fontset-font "fontset-default" chars font frame))))
+#+end_src
+
+**** Unicode font helper script
+
+We can use the =fontconfig= package to figure out what charpoints are supported
+by a font. Here's a useful shell script.
+
+#+begin_src bash :tangle no
+  #! /usr/bin/env -S nix shell
+  #! nix-shell -i bash -p fontconfig
+
+  # General font info.
+  fc-match -v --format='%{file}\n' "$1"
+
+  # Print each codepoint.
+  for range in $(fc-match --format='%{charset}\n' "$1"); do
+      for n in $(seq "0x${range%-*}" "0x${range#*-}"); do
+          n_hex=$(printf "%04x" "$n")
+          # using \U for 5-hex-digits
+          printf "%-5s\U$n_hex\t " "$n_hex"
+          count=$((count + 1))
+          if [ $((count % 10)) = 0 ]; then
+              printf "\n"
+          fi
+      done
+  done
+  printf "\n"
+
+  # Print a compact list of codepoint ranges.
+  fc-query --format='%{charset}\n' "$(fc-match --format='%{file}\n' "$1")"
+#+end_src
+
+*** Set fallbacks when creating a new frame
+
+For some reason we need to set the fallback fonts for each new window that
+opens. See [[https://github.com/wasamasa/dotemacs/blob/ddcbd676f430f743d3d893051783a00deec72109/init.org#fix-the-display-of-emoji][wasamasa/dotemacs: Fix the display of Emoji]].
+
+#+begin_src emacs-lisp
+  (dolist (fn '(js:fonts:set-fallbacks:han
+                js:fonts:set-fallbacks:emoji))
+    (add-hook 'after-make-frame-functions fn)
+    (funcall fn))
+#+end_src
+
+** Theme
+
+This is a custom dark-mode theme, somewhat based on [[https://ethanschoonover.com/solarized/][Solarized]]. It's not very
+good.
+
+#+BEGIN_SRC emacs-lisp
+  (load-theme 'sangster-09 t)
+#+END_SRC
+
+** Personal keymap
+*** C-t: Prefix key
+
+This key is normally set to =transpose-chars=, which I rarely ever use. C-t is
+centrally located in Colemak, so I'd rather use it as a prefix key. Throughout
+this config, I've added my most-used functions to this keymap.
+
+#+begin_src emacs-lisp
+  (bind-keys :map global-map :prefix-map sangster-map :prefix "C-t")
+#+end_src
+*** C-t C-r: revert-buffer
+
+#+begin_src emacs-lisp
+  (bind-key "r" #'revert-buffer sangster-map)
+#+end_src
+
+*** C-z: Unbind suspend key
+
+=C-z= acts similarly to how it does in a terminal emulator, suspending the
+editor. Personally, I find this annoying. Disabled!
+
+#+BEGIN_SRC emacs-lisp
+  (global-unset-key (kbd "C-z"))
+#+END_SRC
+
+** Splash screen
+
+After using Emacs for a few years, the splash page doesn't have much utility.
+Skip it.
+
+#+BEGIN_SRC emacs-lisp
+  (custom-set-variables
+   '(inhibit-splash-screen t)
+   '(inhibit-startup-screen t)
+   '(initial-scratch-message ""))
+#+END_SRC
+
+** Treemacs
+
+#+begin_quote
+  A tree layout file explorer for Emacs. [[https://github.com/Alexander-Miller/treemacs][Homepage]].
+#+end_quote
+
+#+BEGIN_SRC emacs-lisp
+  (use-package treemacs
+    :defer t
+    :init
+    (with-eval-after-load 'winum
+      (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
+    (add-hook 'treemacs-select-functions #'js:treemacs:expand-when-first-used)
+    (add-hook 'treemacs-switch-workspace-hook #'js:treemacs:expand-when-first-used)
+    :config
+    ;; The default width and height of the icons is 22 pixels. If you are
+    ;; using a Hi-DPI display, uncomment this to double the icon size.
+    ;;(treemacs-resize-icons 44)
+    :bind
+    (:map global-map
+          ("C-x t 1"   . treemacs-delete-other-windows)
+          ("C-x t B"   . treemacs-bookmark)
+          ("C-x t c"   . js:treemacs:cwd)
+          ("C-x t C-t" . treemacs-find-file)
+          ("C-x t C-w" . treemacs-edit-workspaces)
+          ("C-x t M-t" . treemacs-find-tag)
+          ("C-x t t"   . treemacs)
+          ("C-x t w"   . treemacs-switch-workspace)
+          ("M-0"       . treemacs-select-window)))
+
+  (use-package treemacs-projectile
+    :after (treemacs projectile)
+    :ensure t)
+
+  (use-package treemacs-icons-dired
+    :after (treemacs dired)
+    :config (treemacs-icons-dired-mode))
+
+  (use-package treemacs-magit
+    :after (treemacs magit)
+    :ensure t)
+
+  ;; TODO: This is buggy and sometimes permanently deletes other workspaces!
+  (defun js:treemacs:cwd ()
+    "Like `treemacs-do-switch-workspace', but follows the current
+   file. If the current file doesn't exist in any workspace, a
+   temporary workspace will be created."
+    (interactive)
+    (let ((current (treemacs-find-workspace-by-path (buffer-file-name)))
+          (buf (current-buffer)))
+      (if current
+          (treemacs-do-switch-workspace current)
+        (progn (treemacs-do-remove-workspace "treemacs-cwd")
+               (let ((treemacs-current-workspace
+                      (cadr (treemacs-do-create-workspace "treemacs-cwd"))))
+                 (treemacs--invalidate-buffer-project-cache)
+                 (treemacs-do-add-project-to-workspace "/" "treemacs-cwd")
+                 (treemacs-display-current-project-exclusively)))
+        (switch-to-buffer-other-window buf))
+      (treemacs--follow)))
+
+  ;; TODO: XMonad-like workspaces. This might be good.
+  ;; See https://github.com/Bad-ptr/persp-mode.el
+  ;; (use-package treemacs-persp ;;treemacs-perspective if you use perspective.el vs. persp-mode
+  ;;   :after (treemacs persp-mode) ;;or perspective vs. persp-mode
+  ;;   :ensure t
+  ;;   :config (treemacs-set-scope-type 'Perspectives))
+#+END_SRC
+
+*** Auto-open workspaces
+
+This hooks configures Treemacs to automatically expand workspaces when they're
+first selected. It's used in the =(use-package treemacs :init)= above.
+
+[[https://github.com/Alexander-Miller/treemacs/issues/740#issuecomment-729215187][GitHub: Alexander-Miller/treemacs - issue #740]]
+
+#+begin_src emacs-lisp
+  (defun js:treemacs:expand-when-first-used (&optional visibility)
+    (when (or (null visibility) (eq visibility 'none))
+      (treemacs-do-for-button-state
+       :on-root-node-closed (treemacs-toggle-node)
+       :no-error t)))
+#+end_src
+
+** Windows
+*** Shift-arrows to change windows
+
+I frequently have several Emacs windows open at once. This function configures
+Emacs to allow you to use =shift+arrowkey= to move between windows (in addition
+to =C-x o=).
+
+Note that this conflicts with some org-mode keys. See [[*Shifting between windows]].
+
+#+BEGIN_SRC emacs-lisp
+  (windmove-default-keybindings)
+#+END_SRC
+
+*** Selection (ace-window)
+
+#+begin_quote
+  When there are two windows, =ace-window= will call =other-window=. If there
+  are more, each window will have the first character of its window label
+  highlighted at the upper left of the window. [[https://github.com/abo-abo/ace-window][GitHub: abo-abo/ace-window]]
+#+end_quote
+
+#+begin_src emacs-lisp
+  (use-package ace-window
+    :init (setq aw-ignore-current t
+                aw-scope 'frame)
+    :bind (:map sangster-map
+                ("o" . ace-window)
+                ("O" . ace-swap-window)))
+#+end_src
+
+** GUI only
+*** Set font size
+
+#+BEGIN_SRC emacs-lisp
+  (set-face-attribute 'default nil :height 130) ; 13 pt.
+#+END_SRC
+
+*** Make window semi-transparent
+
+#+BEGIN_SRC emacs-lisp
+  (set-frame-parameter (selected-frame) 'alpha 80)
+  (add-to-list 'default-frame-alist '(alpha . 80))
+#+END_SRC
+
+*** Remove icon toolbar
+
+Turn off the Emacs toolbar. The one with icons on it, not the "File, Edit, ..."
+one.
+
+#+BEGIN_SRC emacs-lisp
+  (tool-bar-mode -1)
+#+END_SRC
+
+*** Hide minibuffer scrollbar
+
+The minibuffer, at the bottom of the window, has a tiny and pointless scrollbar.
+Remove it.
+
+#+begin_src emacs-lisp
+  ;; TODO: Does this need to added to `after-make-frame-functions' hook?
+  (set-window-scroll-bars (minibuffer-window) nil nil)
+#+end_src
+
+** Terminal only
+*** Mouse
+
+Allow the mouse to be used in terminals that support it.
+
+#+BEGIN_SRC emacs-lisp
+  (xterm-mouse-mode 1)
+#+END_SRC
+
+** Line/column numbers
+*** Enable line numbers in some modes
+
+Turn on line numbers in prog-mode and org-mode.
+
+#+BEGIN_SRC emacs-lisp
+  (dolist (mode '(org-mode-hook
+                  prog-mode-hook))
+    (add-hook mode (lambda () (display-line-numbers-mode 1))))
+#+END_SRC
+
+*** Show cursor column in mode-line
+
+#+BEGIN_SRC emacs-lisp
+  (column-number-mode t)
+#+END_SRC
+
+** Fill column
+
+The "fill column" acts as a text document's right margin. It affects code
+formatters and where Emacs will automatically wrap text, if configured to do so.
+
+80 columns is the traditional default, and allows us to show multiple files
+side-by-side on large displays. Nice!
+
+#+BEGIN_SRC emacs-lisp
+  (customize-set-variable 'fill-column 80)
+#+END_SRC
+
+*** Show visually
+
+Show a thin line where the fill column is.
+
+#+BEGIN_SRC emacs-lisp
+  (global-display-fill-column-indicator-mode)
+#+END_SRC
+
+** Prompts
+*** Helm
+
+#+begin_quote
+  *Helm* is an Emacs framework for incremental completions and narrowing
+  selections. It helps to rapidly complete file names, buffer names, or any
+  other Emacs interactions requiring selecting an item from a list of possible
+  choices. [[https://emacs-helm.github.io/helm/][ Homepage]].
+#+end_quote
+
+#+BEGIN_SRC emacs-lisp
+  (use-package helm
+    :bind (("M-x"     . helm-M-x)
+           ("C-x C-f" . helm-find-files)
+           ("C-x C-b" . helm-buffers-list))
+    :delight
+    :custom
+    (helm-buffer-max-length 40) ; Default truncates filenames too short.
+    :config
+    (helm-mode 1))
+
+  (use-package helm-org-rifle)
+#+END_SRC
+
+**** helm-projectile
+
+#+begin_src emacs-lisp
+  (use-package helm-projectile
+    :bind ("C-c f" . helm-projectile)
+    :config
+    (helm-projectile-on))
+#+end_src
+
+**** helm-rg / helm-projectile-rg
+
+#+begin_src emacs-lisp
+  (use-package helm-rg
+    :bind ("C-c r" . helm-projectile-rg))
+#+end_src
+
+*** Use y/n instead of yes/no
+
+#+BEGIN_SRC emacs-lisp
+  (fset 'yes-or-no-p 'y-or-n-p)
+#+END_SRC
+
+** Scrolling
+*** Emulate vim scrolloff
+
+By default Emacs will scroll by half a screen-height when scrolling past the
+bottom of the screen. This is very jarring and makes it difficult to keep your
+place. These settings make scrolling emulate vim's behaviour: It scrolls 1 line
+at a time, but leaves a margin of a certain number of lines (8 in this case).
+
+#+BEGIN_SRC emacs-lisp
+  (custom-set-variables
+   '(scroll-margin 8)
+   '(scroll-step 1)
+   '(scroll-conservatively 10000)
+   '(scroll-preserve-screen-position 1))
+#+END_SRC
+
+** Help
+*** Use helpful-mode for show more info
+
+[[https://github.com/Wilfred/helpful][Helpful]] is a package that adds a lot more detail to Emacs built-in help system.
+
+#+BEGIN_SRC emacs-lisp
+(use-package helpful
+  :bind
+  (("C-h f" . helpful-callable)
+   ("C-h v" . helpful-variable)
+   ("C-h k" . helpful-key)
+   ("C-h F" . helpful-function)
+   ("C-h C" . helpful-command)))
+#+END_SRC
+
+** Preview Keymaps
+
+[[https://github.com/justbur/emacs-which-key][emacs-which-key]] is a minor mode that pops up a list of possible key bindings
+when you partially enter a hotkey. It's really handy for navigating Emacs' vast
+constellation of hotkeys.
+
+#+BEGIN_SRC emacs-lisp
+  (use-package which-key
+    :config
+    (which-key-mode)
+    (which-key-setup-side-window-right-bottom)
+    (which-key-add-key-based-replacements
+      "C-c C-r d" "Review: daily"
+      "C-c C-r w" "Review: weekly"
+      "C-c C-r m" "Review: monthly"
+      "C-c C-r y" "Review: yearly")
+    :delight)
+#+END_SRC
+
+** Rename with visual feedback (=iedit=)
+
+[[https://github.com/victorhge/iedit][iedit]] is a minor mode that allows you to edit every instance of some text in the
+current buffer, in place.
+
+#+begin_src emacs-lisp
+  (use-package iedit
+    :bind (:map sangster-map (";" . iedit-mode)))
+#+end_src
+
+** Tidy-up mode-line (=delight=)
+
+#+begin_quote
+  Enables you to customise the mode names displayed in the mode line.
+#+end_quote
+
+This package is used via =use-package=.
+
+ - See [[https://elpa.gnu.org/packages/delight.html][ELPA: delight]]
+ - See [[https://github.com/jwiegley/use-package#diminishing-and-delighting-minor-modes][use-package: Diminishing and delighting minor modes]]
+
+#+begin_src emacs-lisp
+  (use-package delight)
+
+  ;; Emacs built-in modes.
+  (delight '((overwrite-mode " OVERWRITE!" t)
+             (emacs-lisp-mode "Elisp" :major)
+             (flyspell-mode nil t)
+             (auto-fill-function " AF" t)))
+#+end_src
+** Font ligatures
+*** JetBrains Mono
+
+My current theme, [[file:sangster-09-theme.el]], is set to use [[https://www.jetbrains.com/lp/mono/][JetBrains Mono]] as its
+default font. This font supports a great number of [[https://en.wikipedia.org/wiki/Ligature_(writing)][ligatures]]. Emacs implements
+ligature rendering with =auto-composition-mode=, which (I believe) is enabled by
+default. We only need to inform it what ligatures to render.
+
+This ligature mapping is from Andrey Listopadov's blog article "[[https://andreyorst.gitlab.io/posts/2020-07-21-programming-ligatures-in-emacs/][Programming
+ligatures in Emacs]]."
+
+#+begin_src emacs-lisp
+  (let ((ligatures
+         `((?-  . ,(regexp-opt '("-|" "-~" "---" "-<<" "-<" "--" "->" "->>" "-->")))
+           (?/  . ,(regexp-opt '("/**" "/*" "///" "/=" "/==" "/>" "//")))
+           (?*  . ,(regexp-opt '("*>" "***" "*/")))
+           (?<  . ,(regexp-opt '("<-" "<<-" "<=>" "<=" "<|" "<||" "<|||::=" "<|>" "<:" "<>" "<-<"
+                                 "<<<" "<==" "<<=" "<=<" "<==>" "<-|" "<<" "<~>" "<=|" "<~~" "<~"
+                                 "<$>" "<$" "<+>" "<+" "</>" "</" "<*" "<*>" "<->" "<!--")))
+           (?:  . ,(regexp-opt '(":>" ":<" ":::" "::" ":?" ":?>" ":=")))
+           (?=  . ,(regexp-opt '("=>>" "==>" "=/=" "=!=" "=>" "===" "=:=" "==")))
+           (?!  . ,(regexp-opt '("!==" "!!" "!=")))
+           (?>  . ,(regexp-opt '(">]" ">:" ">>-" ">>=" ">=>" ">>>" ">-" ">=")))
+           (?&  . ,(regexp-opt '("&&&" "&&")))
+           (?|  . ,(regexp-opt '("|||>" "||>" "|>" "|]" "|}" "|=>" "|->" "|=" "||-" "|-" "||=" "||")))
+           (?.  . ,(regexp-opt '(".." ".?" ".=" ".-" "..<" "...")))
+           (?+  . ,(regexp-opt '("+++" "+>" "++")))
+           (?\[ . ,(regexp-opt '("[||]" "[<" "[|")))
+           (?\{ . ,(regexp-opt '("{|")))
+           (?\? . ,(regexp-opt '("??" "?." "?=" "?:")))
+           (?#  . ,(regexp-opt '("####" "###" "#[" "#{" "#=" "#!" "#:" "#_(" "#_" "#?" "#(" "##")))
+           (?\; . ,(regexp-opt '(";;")))
+           (?_  . ,(regexp-opt '("_|_" "__")))
+           (?\\ . ,(regexp-opt '("\\" "\\/")))
+           (?~  . ,(regexp-opt '("~~" "~~>" "~>" "~=" "~-" "~@")))
+           (?$  . ,(regexp-opt '("$>")))
+           (?^  . ,(regexp-opt '("^=")))
+           (?\] . ,(regexp-opt '("]#"))))))
+    (dolist (char-regexp ligatures)
+      (set-char-table-range composition-function-table (car char-regexp)
+                            `([,(cdr char-regexp) 0 font-shape-gstring]))))
+#+end_src
+
+*** Use only in prog-mode
+
+Font ligatures only make sense in =prog-mode=. Also, the git-diff buffers ought
+to show characters as-is.
+
+#+begin_src emacs-lisp
+  (add-hook 'prog-mode-hook #'auto-composition-mode)
+  (global-auto-composition-mode -1)
+#+end_src
+
+* Reading & writing files
+** Save anyway
+
+=(save-buffer)= does not update the file if the buffer is unchanged. Sometimes,
+file changes are needed to trigger some inotify hook, so =C-t C-s= can be
+used to force the file to be written either way.
+
+#+BEGIN_SRC emacs-lisp
+  (defun js:save-buffer-always ()
+    "Save the buffer even if it is not modified."
+    (interactive)
+    (set-buffer-modified-p t)
+    (save-buffer))
+
+  (bind-key "C-s" #'js:save-buffer-always sangster-map)
+#+END_SRC
+
+** Auto-revert
+
+Auto-revert mode will automatically =revert-buffer= when a file is changed and
+the open buffer is unchanged.
+
+#+BEGIN_SRC emacs-lisp
+  (global-auto-revert-mode)
+#+END_SRC
+
+** dired-mode
+*** Useful functions
+**** =C-t C-o=: =xdg-open= files
+
+[[https://www.freedesktop.org/wiki/Software/xdg-utils/][xdg-open]] will open a file in the "preferred application."
+
+#+BEGIN_SRC emacs-lisp
+  (defun js:dired:xdg-open-file ()
+    "In dired-mode, open the file named on this line."
+    (interactive)
+    (js:macro:call-path-exe+ "xdg-open" (dired-get-filename nil t)))
+#+END_SRC
+
+**** =C-t C-d m=: Play file/directory with MPV
+
+#+begin_src emacs-lisp
+  (defcustom js:video-player-exe "mpv"
+    "The application to play video files with."
+    :tag "Video player executable"
+    :group 'js:custom
+    :type 'string)
+#+end_src
+
+#+begin_src emacs-lisp
+  (defun js:dired:open-video-file ()
+    "In dired-mode, open the file named on this line."
+    (interactive)
+    (js:macro:call-path-exe+ js:video-player-exe (dired-get-filename nil t)))
+#+end_src
+
+*** Bind keys
+
+#+BEGIN_SRC emacs-lisp
+  (add-hook
+   'dired-mode-hook
+   (lambda ()
+     (bind-key "C-t C-o" #'js:dired:xdg-open-file 'dired-mode-map
+               (derived-mode-p 'dired-mode))
+
+     (bind-keys :map dired-mode-map
+                :prefix-map sangster-dired-map
+                :prefix "C-t C-d"
+                :filter (derived-mode-p 'dired-mode)
+                ("m" . js:dired:open-video-file))))
+#+END_SRC
+
+** git
+*** Magit
+
+#+begin_quote
+  Magit is a complete text-based user interface to Git. [[https://magit.vc/][Homepage]].
+#+end_quote
+
+**** Custom functions
+***** Unfold when jumping
+
+Magit's diff-mode allows you to quickly jump to source files. Unfortunately,
+Magit gets lost if that line happens to be invisible (folded, for example). This
+function auto-reveals that area. See [[https://magit.vc/manual/magit.html#Point-ends-up-inside-invisible-text-when-jumping-to-a-file_002dvisiting-buffer][Magit FAQ]].
+
+#+begin_src emacs-lisp
+  (require 'reveal)
+  (defun js:magit:reveal-if-invisible ()
+    (cond ((derived-mode-p 'org-mode) (org-reveal '(4)))
+          (t (reveal-post-command))))
+#+end_src
+
+**** Package configuration
+
+#+BEGIN_SRC emacs-lisp
+  (use-package magit
+    :custom
+    (git-commit-summary-max-length 50)
+    (git-commit-fill-column 72)
+    (vc-follow-symlinks t)
+    :hook
+    (magit-diff-visit-file . js:magit:reveal-if-invisible)
+    (git-commit-setup . git-commit-turn-on-flyspell) ; Spellcheck
+    :bind (:map sangster-map
+                ;; Commit history of (buffer-file-name).
+                ("C-v f" . magit-log-buffer-file)))
+#+END_SRC
+
+*** git-timemachine
+
+[[https://github.com/emacsmirror/git-timemachine][git-timemachine]] is a minor mode that allows us to navigate between previous
+versions of opened files with =p= and =n=.
+
+#+begin_src emacs-lisp
+  (use-package git-timemachine
+    :bind (:map sangster-map ("C-v t" . git-timemachine-toggle)))
+#+end_src
+
+* Text editing
+** Auto-complete (=company=)
+
+#+begin_quote
+  Company is a text completion framework for Emacs. The name stands for
+  "complete anything". It uses pluggable back-ends and front-ends to retrieve
+  and display completion candidates.
+#+end_quote
+
+#+BEGIN_SRC emacs-lisp
+  (use-package company
+    :bind (:map company-active-map
+           ("C-n" . company-select-next)
+           ("C-p" . company-select-previous))
+    :delight
+    :init
+    ;; Don't make all suggestions lowercase.
+    ;; See https://emacs.stackexchange.com/a/10838
+    (customize-set-variable 'company-dabbrev-downcase nil)
+
+    (global-company-mode))
+#+END_SRC
+
+*** =company-box= icons
+
+[[https://github.com/sebastiencs/company-box][company-box]] provides icons for Company.
+
+#+begin_src emacs-lisp
+  (use-package company-box
+    :delight
+    :hook (company-mode . company-box-mode))
+#+end_src
+
+** Snippets
+
+#+begin_quote
+  *YASnippet* is a template system for Emacs. It allows you to type an
+  abbreviation and automatically expand it into function templates. [[https://github.com/joaotavora/yasnippet][Homepage]].
+#+end_quote
+
+#+BEGIN_SRC emacs-lisp
+  (use-package yasnippet
+    :custom
+    (yas-prompt-functions '(yas-ido-prompt))
+    :config
+    (use-package yasnippet-snippets)
+    (yas-global-mode t)
+    (bind-key "y" #'yas-expand sangster-map)
+    (add-to-list #'yas-snippet-dirs (locate-user-emacs-file "snippets"))
+    (yas-reload-all)
+    :delight yas-minor-mode)
+#+END_SRC
+
+** Whitespace
+*** Sentences
+
+Make only one space after a period necessary to end a sentence (instead of two).
+
+#+BEGIN_SRC emacs-lisp
+  (customize-set-variable 'sentence-end-double-space nil)
+#+END_SRC
+
+*** Remove Trailing Space
+
+This will automatically remove trailing spaces from the end of each line before
+saving the file.
+
+#+BEGIN_SRC emacs-lisp
+  (add-hook 'prog-mode-hook
+    (lambda () (add-hook 'before-save-hook 'delete-trailing-whitespace)))
+#+END_SRC
+
+*** Tabs
+
+Do not use tab-characters for indentation.
+
+#+BEGIN_SRC emacs-lisp
+  (customize-set-variable 'indent-tabs-mode nil)
+#+END_SRC
+
+*** Cycle Spacing
+
+#+BEGIN_SRC emacs-lisp
+  (bind-key "M-SPC" 'cycle-spacing)
+#+END_SRC
+
+** Highlight TODO words
+
+#+BEGIN_SRC emacs-lisp
+  (add-hook 'prog-mode-hook
+    (lambda ()
+      (font-lock-add-keywords nil
+        '(("\\<\\(FIXME\\|TODO\\|BUG\\)" 1 font-lock-warning-face t)))))
+#+END_SRC
+
+** Increment number under cursor
+*** Decimal
+
+#+BEGIN_SRC emacs-lisp
+  (defun js:increment-number:decimal (&optional arg)
+    "Increment the number forward from point by 'arg'."
+    (interactive "p*")
+    (save-excursion
+      (save-match-data
+        (let (inc-by field-width answer)
+          (setq inc-by (if arg arg 1))
+          (skip-chars-backward "0123456789")
+          (when (re-search-forward "[0-9]+" nil t)
+            (setq field-width (- (match-end 0) (match-beginning 0)))
+            (setq answer (+ (string-to-number (match-string 0) 10) inc-by))
+            (when (< answer 0)
+              (setq answer (+ (expt 10 field-width) answer)))
+            (replace-match (format (concat "%0" (int-to-string field-width) "d")
+                                   answer)))))))
+#+END_SRC
+
+**** Keybinding
+
+#+BEGIN_SRC emacs-lisp
+  (bind-key "+" 'js:increment-number:decimal sangster-map)
+#+END_SRC
+
+*** Hexadecimal
+
+#+BEGIN_SRC emacs-lisp
+  (defun js:increment-number:hexadecimal (&optional arg)
+    "Increment the number forward from point by 'arg'."
+    (interactive "p*")
+    (save-excursion
+      (save-match-data
+        (let (inc-by field-width answer hex-format)
+          (setq inc-by (if arg arg 1))
+          (skip-chars-backward "0123456789abcdefABCDEF")
+          (when (re-search-forward "[0-9a-fA-F]+" nil t)
+            (setq field-width (- (match-end 0) (match-beginning 0)))
+            (setq answer (+ (string-to-number (match-string 0) 16) inc-by))
+            (when (< answer 0)
+              (setq answer (+ (expt 16 field-width) answer)))
+            (if (equal (match-string 0) (upcase (match-string 0)))
+                (setq hex-format "X")
+              (setq hex-format "x"))
+            (replace-match (format (concat "%0" (int-to-string field-width)
+                                           hex-format)
+                                   answer)))))))
+#+END_SRC
+
+** Insert blank lines
+
+=C-o= and =C-S-o= are both mapped to =open-line=, which creates a blank line
+after the current one. Unfortunately, if the cursor is in the middle of the
+current line, it moves the remainder of the text to the next line.
+
+The version below creates a blank line, but doesn't affect the current line.
+
+#+begin_src emacs-lisp
+  (defun js:open-line (&optional prev)
+    "Create a blank line, indented on the next or PREV line."
+    (interactive "*p")
+    (if (and prev (> prev 1))
+        (progn (message "PREV! %S" prev)
+               (move-beginning-of-line nil)
+               (open-line 1)
+               (indent-according-to-mode))
+      (progn (message "NEXT! %S" prev)
+             (move-end-of-line nil)
+             (newline-and-indent))))
+#+end_src
+
+Org-mode enhances =C-o= to modify org-tables, if =point= is in a table. This
+functions recreates that, using the above function:
+
+#+begin_src emacs-lisp
+  (defun js:org:open-line (n)
+    "A version of `org-open-line' that delegates to `js:open-line'
+  instead of `open-line''."
+    (interactive "*p")
+    (if (and org-special-ctrl-o (/= (point) 1) (org-at-table-p))
+        (org-table-insert-row)
+      (js:open-line n)))
+
+  (defun js:org:open-line:prev ()
+    (interactive)
+    (js:org:open-line 4))
+#+end_src
+
+*** Remap =C-o= and =C-S-o=
+
+#+begin_src emacs-lisp
+  (global-set-key (kbd "C-o") 'js:org:open-line)
+  (global-set-key (kbd "C-S-o") 'js:org:open-line:prev)
+#+end_src
+
+** Insert unicode characters
+
+Shortcuts for commonly used unicode characters. Inspired by [[https://sachachua.com/dotemacs/#org582e99e][Sacha Chua's Emacs
+configuration]].
+
+#+begin_src emacs-lisp
+  (defun js:insert-unicode (name)
+    "Insert the unicode character named NAME."
+    (interactive "sName: ")
+    (insert-char (gethash name (ucs-names))))
+
+  (defmacro js:macro:insert-unicode (name)
+    "Define a function to insert the unicode character named NAME."
+    `(defun ,(intern (concat "js:unicode:" (s-replace " " "-" name))) ()
+       (interactive)
+       (js:insert-unicode ,name)))
+
+  (bind-key "8 z"   (js:macro:insert-unicode "ZERO WIDTH SPACE") 'ctl-x-map)
+  (bind-key "8 d"   (js:macro:insert-unicode "EN DASH") 'ctl-x-map)
+  (bind-key "8 D"   (js:macro:insert-unicode "EM DASH") 'ctl-x-map)
+
+  (bind-key "8 e t" (js:macro:insert-unicode "THINKING FACE") 'ctl-x-map)
+#+end_src
+
+** RFCs
+
+A handy mode for browsing [[https://www.rfc-editor.org/][RFCs]]. Execute =(rfc-mode-browse)= to get browse the
+available RFCs.
+
+#+begin_src emacs-lisp
+  (use-package rfc-mode
+    :custom
+    (rfc-mode-directory (expand-file-name "emacs/RFCs" xdg/cache-home)))
+#+end_src
+
+* IDE features
+** Faster code parsing (=tree-sitter=)
+
+[[https://tree-sitter.github.io/tree-sitter/][Tree-sitter]] is a fast syntax parser that supports several languages. Emacs (see
+[[https://emacs-tree-sitter.github.io/][emacs-tree-sitter]]) can use it for faster syntax highlighting.
+
+#+begin_src emacs-lisp
+  (use-package tree-sitter
+    :config
+    (global-tree-sitter-mode)
+    (add-hook 'tree-sitter-after-on-hook #'tree-sitter-hl-mode)
+    ;; HTML+ mode
+    (add-to-list 'tree-sitter-major-mode-language-alist '(mhtml-mode . html)))
+
+  (use-package tree-sitter-langs
+    :after tree-sitter)
+#+end_src
+
+** Language Server Protocol (LSP)
+
+#+begin_quote
+  lsp-mode aims to provide IDE-like experience by providing optional integration
+  with the most popular Emacs packages like company, flycheck and projectile.
+  [[https://emacs-lsp.github.io/lsp-mode/][Website]].
+#+end_quote
+
+See [[https://robert.kra.hn/posts/2021-02-07_rust-with-emacs/][Configuring Emacs for Rust development]].
+
+#+BEGIN_SRC emacs-lisp
+  (use-package lsp-mode
+    :init
+    ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
+    (customize-set-variable 'lsp-keymap-prefix "C-t t")
+    :hook (;; See https://emacs-lsp.github.io/lsp-mode/page/languages
+          (css-mode        . lsp)
+          (haskell-mode    . lsp)
+          (html-mode       . lsp)
+          (javascript-mode . lsp)
+          (nix-mode        . lsp)
+          (ruby-mode       . lsp)
+          (scss-mode       . lsp)
+          (xml-mode        . lsp)
+
+          ;; TODO: How does this clash with `rustic` below?
+          ;; (rust-mode    . lsp) ;; TODO: https://emacs-lsp.github.io/lsp-mode/page/lsp-rust
+          ;; (haskell-mode . lsp) ;; TODO: https://emacs-lsp.github.io/lsp-haskell
+
+          (lsp-mode . lsp-enable-which-key-integration))
+    :custom
+    ;; (lsp-eldoc-render-all t) ;; TODO: what does this do?
+    (lsp-idle-delay 0.6)
+    (lsp-rust-analyzer-cargo-watch-command "clippy")
+    (lsp-rust-analyzer-server-display-inlay-hints t)
+    :commands lsp)
+#+END_SRC
+
+*** Performance tweaks
+
+LSP recommends certain settings for the sake of performance. You can test your
+current settings by running the interactive command src_emacs-lisp[:exports
+code]{(lsp-doctor)}.
+
+#+BEGIN_SRC emacs-lisp
+  (custom-set-variables
+   '(gc-cons-threshold (* 1 1024 1024 1024)) ;; 1 GiB
+   '(read-process-output-max (* 4 1024 1024)) ;; 4 MiB
+   '(lsp-use-plists t)) ;; ENV var LSP_USE_PLISTS must also be set
+#+END_SRC
+
+*** lsp-ui
+
+https://emacs-lsp.github.io/lsp-ui
+
+#+BEGIN_SRC emacs-lisp
+  (use-package lsp-ui
+    :config
+    (custom-set-variables
+     ;; Sideline
+     '(lsp-ui-sideline-enable t)
+     '(lsp-ui-sideline-show-diagnostics t)
+     '(lsp-ui-sideline-delay 1)
+     '(lsp-ui-sideline-show-hover t)
+     ;; Peek
+     '(lsp-ui-peek-always-show t)
+     ;; Doc
+     '(lsp-ui-doc-enable t)
+     '(lsp-ui-doc-delay 3)))
+#+END_SRC
+
+*** Flycheck integration
+
+LSP current breaks Flycheck's "next-checker" feature. Flycheck is able to
+daisy-chain multiple syntax checkers, running one after the other. You can run
+src_emacs-lisp[:export code]{(flycheck-verify-setup)} and have a look at each
+entry's "next checkers." However, the checker supplied by LSP, =lsp=, runs in
+many different modes and doesn't have any "next checkers." Flycheck wasn't
+designed to allow a single checker to have different "next checkers" depending
+on the mode of the current buffer.
+
+See [[https://github.com/flycheck/flycheck/issues/1762][flycheck issue #1762: "Correct way to chain checkers to lsp"]].
+
+To implement the hack-fix, from the above link, we need to set LSP's
+"next-checker" in the new =flycheck-local-checkers= variable in a hook for each
+mode, like:
+
+#+begin_src emacs-lisp :tangle no
+  (use-package haskell-mode
+    :hook
+    (haskell-mode . (lambda () (js:flycheck:lsp:next-checkers
+                                '(haskell-stack-ghc haskell-hlist)))))
+#+end_src
+
+#+begin_src emacs-lisp
+  (defvar-local flycheck-local-checkers nil
+    "Buffer-local Flycheck checkers.")
+
+  (defun js:advice-around:flycheck-checker-get(fn checker property)
+    (or (alist-get property (alist-get checker flycheck-local-checkers))
+        (funcall fn checker property)))
+
+  (advice-add 'flycheck-checker-get
+              :around #'js:advice-around:flycheck-checker-get)
+
+  (defun js:flycheck:lsp:next-checkers (checkers)
+    "Set CHECKERS as the LSP checker's next-checkers in the local buffer."
+    (setq flycheck-local-checkers `((lsp . ((next-checkers . ,checkers))))))
+#+end_src
+
+** Projectile
+
+#+begin_quote
+  *Projectile* is a project interaction library for Emacs. Its goal is to
+  provide a nice set of features operating on a project level without
+  introducing external dependencies (when feasible). [[https://projectile.mx/][Website]].
+#+end_quote
+
+#+BEGIN_SRC emacs-lisp
+  (use-package projectile
+    :config
+    (define-key projectile-mode-map (kbd "C-t p") 'projectile-command-map)
+    (projectile-mode +1)
+    ;; Hide mode name, but show project name.
+    :delight '(:eval (concat " [" (projectile-project-name) "]")))
+#+END_SRC
+
+** Syntax Checking (flycheck)
+
+[[https://www.flycheck.org/][flycheck.org]]
+
+#+begin_src emacs-lisp
+  (use-package flycheck
+    :delight
+    :hook ((org-mode prog-mode text-mode) . flycheck-mode)
+    :custom
+    (flycheck-textlint-config (locate-user-emacs-file "tools/textlint.json"))
+    :config
+    (add-to-list 'flycheck-textlint-plugin-alist '(html-mode . "html"))
+    ;; TODO This relies on the "orga" NPM package, to parse ORG files into a
+    ;;      javascript-frieldly AST. Unfortunately this package (as of v.2.6.0) is
+    ;;      pretty broken. For example: it starts to raise exceptions if a link
+    ;;      includes a linebreak in its label. ex:
+    ;;          [[http://example.com][Link to
+    ;;          Example.com!]]
+    ;; (add-to-list 'flycheck-textlint-plugin-alist '(org-mode  . "org"))
+    (flycheck-add-next-checker 'proselint 'textlint))
+#+end_src
+
+** TODO Search for symbols =helm-swoop=
+
+#+begin_src emacs-lisp
+  (use-package helm-swoop)
+#+end_src
+
+** Etags
+
+#+begin_src emacs-lisp
+  (customize-set-variable 'tags-revert-without-query t
+                          "Don't prompt when TAGS file is updated.")
+#+end_src
+
+* Programming languages and related modes
+** General
+*** Rainbow Delimiters
+
+#+BEGIN_SRC emacs-lisp
+  (use-package rainbow-delimiters
+    :hook (prog-mode . rainbow-delimiters-mode))
+#+END_SRC
+
+** Ansible
+
+#+BEGIN_SRC emacs-lisp
+  (use-package jinja2-mode
+    :mode "\\.j2\\'")
+#+END_SRC
+
+** YAML
+
+#+BEGIN_SRC emacs-lisp
+  (use-package yaml-mode
+    :mode "\\.yaml\\'")
+#+END_SRC
+
+** C#
+
+#+begin_src emacs-lisp
+  (use-package csharp-mode
+    :mode "\\.cs\\'")
+#+end_src
+
+** Color Identifiers
+
+#+BEGIN_SRC emacs-lisp
+  (use-package color-identifiers-mode
+    :hook ((ruby-mode)
+           (javascript-mode))
+  )
+#+END_SRC
+
+** CSS
+*** Flycheck config
+
+#+begin_src emacs-lisp
+  (add-hook
+   'css-mode-hook
+   (lambda ()
+     (js:flycheck:lsp:next-checkers '(css-stylelint))
+     (setq flycheck-stylelintrc
+           (locate-user-emacs-file "tools/stylelint/css-default.json"))))
+#+end_src
+
+*** SCSS
+
+#+BEGIN_SRC emacs-lisp
+  (use-package scss-mode
+    :mode "\\.scss\\'"
+    :hook
+    ;; Flycheck config
+    (scss-mode . (lambda ()
+                   (js:flycheck:lsp:next-checkers '(scss-stylelint))
+                   (setq flycheck-stylelintrc
+                         (locate-user-emacs-file "tools/stylelint/scss-default.json")))))
+#+END_SRC
+
+**** TODO Temporary hack-fix for Flycheck (issue #1912)
+
+#+BEGIN_SRC emacs-lisp
+  (flycheck-define-checker scss-stylelint
+    "A SCSS syntax and style checker using stylelint.
+
+  This version of scss-stylelint overrides the default version
+  supplied by flycheck. The upstream stylelint project recently
+  removed the --style flag, which this checker uses to specify SCSS
+  syntax. In the new version of stylelint, different languages need
+  to specify different `flycheck-stylelintrc' files.
+
+  See URL `https://github.com/flycheck/flycheck/issues/1912'."
+    :command ("stylelint"
+              (eval flycheck-stylelint-args)
+              (option-flag "--quiet" flycheck-stylelint-quiet)
+              (config-file "--config" flycheck-stylelintrc))
+    :standard-input t
+    :error-parser flycheck-parse-stylelint
+    :predicate flycheck-buffer-nonempty-p
+    :modes (scss-mode))
+#+END_SRC
+
+*** Indent
+
+#+BEGIN_SRC emacs-lisp
+  (setq css-indent-offset 2)
+#+END_SRC
+
+Uniquely colours every unique identifier. Only works for some languages.
+
+** CSV
+
+#+begin_src emacs-lisp
+  (use-package csv-mode
+    :mode "\\.csv\\'")
+#+end_src
+
+** Emacs Lisp
+*** Highlight matching parens
+
+#+BEGIN_SRC emacs-lisp
+  (add-hook 'emacs-lisp-mode-hook #'show-paren-mode)
+#+END_SRC
+
+** Haskell
+
+#+BEGIN_SRC emacs-lisp
+  (use-package haskell-mode
+    :mode "\\.hs\\'"
+    :hook
+    (haskell-mode . interactive-haskell-mode)
+    (haskell-mode . (lambda () (js:flycheck:lsp:next-checkers
+                                '(haskell-stack-ghc haskell-hlist))))
+    :custom
+    (haskell-process-suggest-remove-import-lines t "Suggest removing unused imports.")
+    (haskell-process-auto-import-loaded-modules t "Auto-import modules.")
+    (haskell-process-log t "Enable debug logging."))
+#+END_SRC
+
+*** Flycheck
+
+#+BEGIN_SRC emacs-lisp
+  (use-package flycheck-haskell
+    :hook (haskell-mode . flycheck-haskell-setup))
+#+END_SRC
+
+*** LSP
+
+#+BEGIN_SRC emacs-lisp
+  (use-package lsp-haskell)
+#+END_SRC
+
+** JavaScript
+*** Indent
+
+#+BEGIN_SRC emacs-lisp
+  (custom-set-variables
+   '(js-indent-level 2)
+   '(jsx-indent-level 2))
+#+END_SRC
+
+*** Flymake checker
+
+#+begin_src emacs-lisp
+  (customize-set-variable 'flycheck-javascript-standard-executable "semistandard")
+#+end_src
+
+** JSON
+
+#+BEGIN_SRC emacs-lisp
+  (use-package json-mode
+    :mode "\\.json\\'")
+#+END_SRC
+
+** Lua
+
+#+BEGIN_SRC emacs-lisp
+  (use-package lua-mode
+    :mode "\\.lua\\'")
+#+END_SRC
+
+** Makefile
+
+Make leading tabs visible.
+
+#+begin_src emacs-lisp
+  (add-hook 'makefile-mode-hook
+            (lambda () (let ((whitespace-style '(face tabs tab-mark)))
+                         (whitespace-mode t))))
+#+end_src
+
+** Markdown
+
+#+begin_src emacs-lisp
+  (use-package markdown-mode
+    :mode ("\\.md\\'" . gfm-mode) ; GitHub-flavoured markdown
+    :custom
+    (markdown-command "multimarkdown"))
+#+end_src
+
+** Nix
+
+#+BEGIN_SRC emacs-lisp
+  (use-package nix-mode
+    :mode "\\.nix\\'"
+    :hook
+    (nix-mode . (lambda () (js:flycheck:lsp:next-checkers '(nix)))))
+#+END_SRC
+
+** PHP
+
+#+BEGIN_SRC emacs-lisp
+  (use-package php-mode
+    :mode "\\.php\\'")
+#+END_SRC
+
+** plantuml
+
+#+BEGIN_SRC emacs-lisp
+  (use-package plantuml-mode
+    :mode "\\.plantuml\\'"
+  )
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+  (org-babel-do-load-languages 'org-babel-load-languages '((plantuml . t)))
+#+END_SRC
+
+*** System Config
+
+#+begin_src emacs-lisp
+  (defun js:nix:plantuml:jar-path ()
+    "Return the path to PlantUML's JAR file. It can be set with the
+  `PLANTUML_JAR' environmental variable, or if unset, the path will
+  be derived from `nix path-info'. `nil' if PlantUML isn't
+  installed."
+    (or (getenv "PLANTUML_JAR")
+        (with-temp-buffer
+          (when (eq 0 (js:macro:call-path-exe "nix" "path-info" "nixpkgs#plantuml"))
+            (concat (s-trim-right (buffer-string)) "/lib/plantuml.jar")))))
+#+end_src
+
+#+BEGIN_SRC emacs-lisp
+  (customize-set-variable 'org-plantuml-jar-path (js:nix:plantuml:jar-path))
+#+END_SRC
+
+** Ruby
+
+#+BEGIN_SRC emacs-lisp
+  (use-package haml-mode
+    :mode "\\.haml\\'")
+#+END_SRC
+
+*** org-mode execution
+
+#+BEGIN_SRC emacs-lisp
+  (org-babel-do-load-languages 'org-babel-load-languages '((ruby . t)))
+#+END_SRC
+
+*** RuboCop
+
+Use [[https://github.com/rubocop/rubocop-emacs][=rubocop-emacs=]] to automatically lint ruby files with [[https://github.com/rubocop/rubocop-emacs][RuboCop]].
+
+#+BEGIN_SRC emacs-lisp
+  (use-package rubocop
+    :init (add-hook 'ruby-mode-hook #'rubocop-mode))
+#+END_SRC
+
+** Rust
+
+See [[https://robert.kra.hn/posts/2021-02-07_rust-with-emacs/][Configuring Emacs for Rust development]].
+
+#+BEGIN_SRC emacs-lisp
+  (use-package rustic
+    :ensure
+    :bind (:map rustic-mode-map
+                ("M-j" . lsp-ui-imenu)
+                ("M-?" . lsp-find-references)
+                ("C-c C-c l" . flycheck-list-errors)
+                ("C-c C-c a" . lsp-execute-code-action)
+                ("C-c C-c r" . lsp-rename)
+                ("C-c C-c q" . lsp-workspace-restart)
+                ("C-c C-c Q" . lsp-workspace-shutdown)
+                ("C-c C-c s" . lsp-rust-analyzer-status))
+    :config
+    ;; uncomment for less flashiness
+    ;; (setq lsp-eldoc-hook nil)
+    ;; (setq lsp-enable-symbol-highlighting nil)
+    ;; (setq lsp-signature-auto-activate nil)
+
+    ;; comment to disable rustfmt on save
+    (setq rustic-format-on-save t)
+    :hook
+    (rustic-mode . js:rustic:disable-save-query))
+
+  (defun js:rustic:disable-save-query ()
+    "So that run C-c C-c C-r works without having to confirm."
+    (setq-local buffer-save-without-query t))
+#+END_SRC
+
+** Shell
+
+#+begin_src emacs-lisp
+  (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)))
+#+end_src
+
+** SQL
+
+#+BEGIN_SRC emacs-lisp
+  (use-package sqlup-mode
+    :straight (sqlup-mode :type git :host github :repo "Trevoke/sqlup-mode.el")
+    :mode "\\.sql\\'"
+    :hook (sql-mode . sql-interactive-mode))
+#+END_SRC
+
+** TypeScript
+
+#+BEGIN_SRC emacs-lisp
+  (use-package typescript-mode
+    :mode "\\.ts\\'")
+#+END_SRC
+
+* org-mode
+** Modules
+*** org-contrib
+
+=org-contrib= contains a collection of moderately useful extensions to org-mode.
+
+#+BEGIN_SRC emacs-lisp
+  (use-package org-contrib
+    :straight (:includes (org-checklist))
+    :config
+    (add-to-list 'org-modules 'org-checklist))
+#+END_SRC
+
+**** org-checklist
+
+ - =RESET_CHECK_BOXES= property :: If set to =t=, when the TODO state is set to
+      done all checkboxes under that item are cleared.
+ - =LIST_EXPORT_BASENAME= property :: If set to =t=, a file will be created
+      using the value of that property plus a timestamp, containing all the
+      items in the list which are not checked. Additionally the user will be
+      prompted to print the list.
+
+***** Links
+
+ - [[https://orgmode.org/worg/org-contrib/org-checklist.html][org-checklist.el — org functions for checklist handling]].
+ - [[https://code.orgmode.org/bzg/org-mode/raw/master/contrib/lisp/org-checklist.el][source code]]
+
+*** Spell-check
+
+Automatically enable spell-check in org-mode, to avoid embarrassing typos!
+
+#+begin_src emacs-lisp
+  (add-hook 'org-mode-hook #'flyspell-mode)
+#+end_src
+
+** Agenda
+*** Agenda Category Icons
+
+When using =org-mode='s "agenda" feature to manage a large number of TODO items,
+it's handy to visually distinguish them with icons. =org-mode= supports this by
+allowing you to specify regexp/icon pairs (See
+=org-agenda-category-icon-alist=). If a TODO heading matches the regexp, then
+that item will be shown in the agenda view alongside the associated icon.
+
+In this section, we create a customisation, =js:org:agenda-categories=, to
+create these regexp/icon pairs using icons from [[https://github.com/domtronn/all-the-icons.el][all-the-icons]].
+=org-agenda-category-icon-alist= supports various kinds of icons, but sticking
+to =all-the-icons= is nice because the icons will show up both in the GUI and on
+the terminal (with the correct fonts installed).
+
+**** =defcustom js:org:agenda-categories=
+
+=all-the-icons= provides a huge number of icons, so this customisation creates
+menus to allow you to choose the icon from a menu. Changing the value of this
+customisation will automatically update =org-agenda-category-icon-alist=.
+
+#+begin_src emacs-lisp
+  ;; TODO: Make this a widget.
+  (defun js:all-the-icons-choices:icon (icon)
+     "Create a text widget to describe ICON, like ':) \"smile\"'."
+    `(const :tag ,(concat (cdr icon) " " (car icon)) ,(car icon)))
+
+  ;; TODO: Make this a widget.
+  (defun js:all-the-icons-choices (name fn icons-alist)
+    "Create a widget to select an Icon Set/Icon Name pair."
+    `(cons :tag ,name
+           (function-item ,fn)
+           ,(append '(choice :tag "Icon Name")
+                    (mapcar #'js:all-the-icons-choices:icon icons-alist))))
+
+  (defun js:create-custom:org-agenda-categories ()
+    (defcustom js:org:agenda-categories
+      '(("inbox"      all-the-icons-faicon   . "envelope")
+        ("todo"       all-the-icons-faicon   . "check-square-o")
+        ("Home"       all-the-icons-material . "home")
+        ("Recreation" all-the-icons-faicon   . "smile-o")
+        ("Work"       all-the-icons-faicon   . "wrench"))
+      "The org-mode agenda categories, and their icons."
+      :tag "org-mode Agenda Categories"
+      :group 'js:custom
+      :type
+      `(repeat
+        (cons :tag "Agenda Category"
+         (regexp :tag "Regexp matching Category")
+         ;; TODO: Make this a widget.
+         (choice
+          ,(js:all-the-icons-choices "All the Icons"
+            #'all-the-icons-alltheicon all-the-icons-data/alltheicons-alist)
+          ,(js:all-the-icons-choices "Font Awesome"
+            #'all-the-icons-faicon all-the-icons-data/fa-icon-alist)
+          ,(js:all-the-icons-choices "Atom File Icons"
+            #'all-the-icons-fileicon all-the-icons-data/file-icon-alist)
+          ,(js:all-the-icons-choices "Material Icons"
+            #'all-the-icons-material all-the-icons-data/material-icons-alist)
+          ,(js:all-the-icons-choices "GitHub Octicons"
+            #'all-the-icons-ocicon all-the-icons-data/octicons-alist)
+          ,(js:all-the-icons-choices "Weather Icons"
+            #'all-the-icons-wicon all-the-icons-data/weather-icons-alist))))
+      :set
+      (lambda (symbol categories)
+        (set-default symbol categories)
+        (js:apply-custom:org:agenda-categories categories))))
+#+end_src
+
+**** Apply the customisation
+
+This function should be applied when the =all-the-icons= package is loaded and
+anytime =js:org:agenda-categories= changes.
+
+#+begin_src emacs-lisp
+  (defun js:apply-custom:org:agenda-categories (categories)
+    "Apply CATEGORIES to `org-agenda-category-icon-alist'."
+    (let ((mkicon
+           (lambda (icon)
+             `(,(car icon)
+               (,(funcall (cadr icon) (cddr icon))) nil nil :ascent center))))
+      (customize-set-variable 'org-agenda-category-icon-alist
+                              (mapcar mkicon categories))))
+#+end_src
+
+*** Icons
+
+#+BEGIN_SRC emacs-lisp
+  (use-package all-the-icons
+    :config
+    (js:create-custom:org-agenda-categories)
+    (js:apply-custom:org:agenda-categories js:org:agenda-categories))
+#+END_SRC
+
+*** Prefix format
+
+Since =all-the-icons= are not fixed-width, separate the TODO heading with a tab,
+to ensure they're aligned.
+
+#+BEGIN_SRC emacs-lisp
+  (customize-set-variable
+   'org-agenda-prefix-format
+    '((agenda . "%i %-10:c%?-10t\t% s")
+       (todo . " %i %-10:c")
+       (tags . " %i %-10:c")
+       (search . " %i %-10:c")))
+#+END_SRC
+
+**** References
+
+ - [[https://github.com/domtronn/all-the-icons.el/issues/33][domtronn/all-the-icons.el: icons not aligned]]
+
+** UI
+*** Heading Icons with org-superstar
+
+[[https://github.com/integral-dw/org-superstar-mode/][org-superstar]] is a minor mode that replaces the leading asterisks in org-mode
+headings with icons. Ditto for org-lists.
+
+#+BEGIN_SRC emacs-lisp
+  (use-package org-superstar
+    :custom
+    (org-superstar-headline-bullets-list  '(?■ ?● ?◈ ?◉ ?○ ?▷))
+    (org-superstar-cycle-headline-bullets nil)
+    (org-superstar-leading-bullet " ⋅")
+    (org-superstar-leading-fallback ?\s "Hide leading bullets on terminal.")
+    (org-superstar-item-bullet-alist '((?* . ?•)
+                                       (?+ . ?+)
+                                       (?- . ?–)))
+    :hook (org-mode . org-superstar-mode))
+#+END_SRC
+
+*** Fold Symbol
+
+#+BEGIN_SRC emacs-lisp
+  (customize-set-variable 'org-ellipsis "⤶")
+#+END_SRC
+
+*** Auto Fill
+
+Turn on auto-fill mode in prose-based modes.
+
+#+BEGIN_SRC emacs-lisp
+  (add-hook 'org-mode-hook #'turn-on-auto-fill)
+  (add-hook 'text-mode-hook #'turn-on-auto-fill)
+#+END_SRC
+
+*** Shifting between windows
+
+See [[https://orgmode.org/manual/Conflicts.html][The Org Manual: 16.13.2 Packages that conflict with Org mode]].
+
+#+BEGIN_SRC emacs-lisp
+  (customize-set-variable 'org-support-shift-select 'always)
+
+  (add-hook 'org-shiftup-final-hook    #'windmove-up)
+  (add-hook 'org-shiftleft-final-hook  #'windmove-left)
+  (add-hook 'org-shiftdown-final-hook  #'windmove-down)
+  (add-hook 'org-shiftright-final-hook #'windmove-right)
+#+END_SRC
+
+*** Disable electric indent
+
+Disable electric indent mode in org-mode. This is normally a very useful feature
+when writing code, but it misbehaves inside =begin_src= blocks. Sometimes, when
+you type =RET=, it indents the entire block to the right, no matter what. This
+can lead to the code block being indented by dozens of spaces.
+
+#+begin_quote
+  Electric Indent mode is a global minor mode that automatically indents the
+  line after every =RET= you type. This mode is enabled by default.
+#+end_quote
+
+#+begin_src emacs-lisp
+  (add-hook 'org-mode-hook (lambda () (electric-indent-local-mode -1)))
+#+end_src
+
+** Logging / Notes
+
+#+BEGIN_SRC emacs-lisp
+  (customize-set-variable 'org-log-into-drawer t)
+#+END_SRC
+
+** Structure Templates
+
+#+begin_notes
+  - As of org-mode 9.2, "easy templates" (like =<s=) have been replaced by =C-c
+    C-,=. org-mode provides =org-tempo.el= to reimplement this functinality, but
+    for now I'm using [[*Snippets][YASnippets]] instead.
+#+end_notes
+
+#+BEGIN_SRC emacs-lisp
+  (add-to-list 'org-structure-template-alist
+   '("L" . "src emacs-lisp"))
+#+END_SRC
+
+** Common File Paths
+
+#+begin_src emacs-lisp
+  (defcustom js:org:root "~/org-files"
+    "The root directory for org-mode agenda and capture files."
+    :tag "org-mode Root Directory"
+    :group 'js:custom
+    :type 'directory
+    :set (lambda (symbol dir)
+           (set-default symbol dir)
+           (customize-set-variable 'org-directory dir)))
+
+  (defcustom js:org:agenda-files '("~/org-files/inbox.org"
+                                   "~/org-files/email-drafts.org"
+                                   "~/org-files/work.org")
+    "See `org-agenda-files'."
+    :tag "org-mode Agenda Files"
+    :group 'js:custom
+    :type '(repeat (file :must-match t))
+    :set (lambda (symbol files)
+           (set-default symbol files)
+           (customize-set-variable 'org-agenda-files files)))
+#+end_src
+
+#+BEGIN_SRC emacs-lisp
+  (customize-set-variable 'org-directory js:org:root)
+  (customize-set-variable 'org-default-notes-file
+                          (expand-file-name "notes.org" js:org:root))
+  (customize-set-variable 'org-agenda-files js:org:agenda-files)
+#+END_SRC
+
+** Quick Action Key bindings
+
+#+BEGIN_SRC emacs-lisp
+  (global-set-key (kbd "C-c l") 'org-store-link)
+  (global-set-key (kbd "C-c a") 'org-agenda)
+  (global-set-key (kbd "C-c c") 'org-capture)
+#+END_SRC
+
+** Capture Templates
+*** Use =doct= to define capture templates
+
+#+BEGIN_SRC emacs-lisp
+  (use-package doct
+    :commands (doct))
+#+END_SRC
+
+*** Store journal entries in a monthly file
+
+Instead of one file per entry, let's collect each month's journal entries in a
+single =.org= file.
+
+#+begin_src emacs-lisp
+  (defcustom js:journal:root "~/journal-files"
+    "The root directory for org-mode journal files."
+    :tag "Journal Root Directory"
+    :group 'js:custom
+    :type 'directory)
+#+end_src
+
+#+BEGIN_SRC emacs-lisp
+  (defun js:journal:montly-file-name ()
+    "The path to this month's journal file, like:
+  '~/journal-files/journal-2020-12.org'."
+    (expand-file-name (format "journal-%s.org" (format-time-string "%Y-%m"))
+      js:journal:root))
+
+  (defun js:journal:find-entry ()
+    "Append to end of or create Org entry with date heading."
+    (let ((heading (concat "* " (format-time-string "%F w%V %A"))))
+         (save-match-data
+           (goto-char (point-min))
+           (unless (re-search-forward heading nil 'no-error)
+             (end-of-line)
+             (insert heading))
+           (org-end-of-subtree))))
+#+END_SRC
+
+*** Define Capture Templates
+
+These are the capture templates that I find useful these days:
+
+ - Todo (=t=) :: Used to quickly capture a random thought or TODO item before I
+   forget it. This is my most generic capture template.
+ - Clipboard (=v=) :: Create a note using contents of the clipboard.
+ - New Draft (=e=) :: Quickly create an email draft, using [[https://github.com/org-mime/org-mime/][org-mime]].
+ - Project (=p=) :: Quickly define a new project that I want to start. Projects
+   are medium-sized life goals that require a series of actions.
+ - Someday (=s=) :: Projects that I certainly don't want to do now, but might at
+   some point in the future. I try to review this list every year, but usually
+   forget.
+ - Maybe (=m=) :: Project that might be a good idea or might not be. This things
+   need to be researched further.
+ - Journal (=j=) :: Add a new entry to my personal journal/diary.
+
+#+BEGIN_SRC emacs-lisp
+  (customize-set-variable
+   'org-capture-templates
+   (doct `((:group "inbox"
+                   :file ,(expand-file-name "inbox.org" org-directory)
+                   :headline "New"
+                   :todo-state "TODO"
+                   :children
+                   (("Todo (inbox)"
+                     :keys "t"
+                     :template ("* %{todo-state} %?"
+                                "  %i"
+                                "  %a"))
+                    ("Clipboard (inbox)"
+                     :keys "v"
+                     :template ("* %{todo-state} %?"
+                                "  %x"
+                                "  %i"
+                                "  %a"))))
+
+           (:group "emails"
+                   :file ,(expand-file-name "email-drafts.org" org-directory)
+                   :children
+                   (("New Draft"
+                     :keys "e"
+                     :headline "Drafts"
+                     :template ("* %(js:email:subject-prepend-re \"%:subject\") %? :EMAIL:"
+                                ":PROPERTIES:"
+                                ":MAIL_TO: %:replyto"
+                                ":MAIL_CC:"
+                                ":MAIL_BCC:"
+                                ":CREATED: %U"
+                                ":EMAIL-SOURCE: %l"
+                                ":END:"))))
+           (:group "PARA"
+                   :file ,(expand-file-name "projects.org" org-directory)
+                   :children (
+                              ("Project"
+                               :keys "p"
+                               :template-file ,(locate-user-emacs-file "org/templates/project-new.org"))))
+
+           (:group "someday"
+                   :file ,(expand-file-name "someday.org" org-directory)
+                   :headline "Someday / Maybe"
+                   :children (
+                              ("Someday" :keys "s" :template ("* SOMEDAY %?"))
+                              ("Maybe"   :keys "m" :template ("* MAYBE %?"))))
+
+           ("Journal"
+            :keys "j"
+            :type plain
+            :file js:journal:montly-file-name
+            :function js:journal:find-entry
+            :template ("** %?"
+                       ":PROPERTIES:"
+                       ":CREATED: %U"
+                       ;; ":ANNOTATION: %a" ;; TODO: Why would I want an this?
+                       ":END:"
+                       ""
+                       "%i")
+            :kill-buffer t
+            :empty-lines 1))))
+#+END_SRC
+
+** Refile
+
+#+BEGIN_SRC emacs-lisp
+  (customize-set-variable
+   'org-refile-targets
+    `(((,(expand-file-name "projects.org" org-directory))   :maxlevel . 3)
+      ((,(expand-file-name "categories.org" org-directory)) :maxlevel . 3)
+      ((,(expand-file-name "resources.org" org-directory))  :maxlevel . 3)
+      ((,(expand-file-name "contacts.org" org-directory))   :maxlevel . 3)))
+#+END_SRC
+
+** OS Dialog
+
+Allows org-capture to be used as a standalone popup.
+
+Call with:
+
+=emacsclient -c -F '(quote (name . "capture"))' -e '(js:org:activate-capture-frame)'=
+
+#+BEGIN_SRC emacs-lisp
+  (defadvice js:org-capture:finalize
+      (after delete-capture-frame activate)
+    "Advise capture-finalize to close the frame"
+    (when (and (equal "capture" (frame-parameter nil 'name))
+               (not (eq this-command 'js:org-capture:refile)))
+      (delete-frame)))
+
+  (defadvice js:org-capture:refile
+      (after delete-capture-frame activate)
+    "Advise org-refile to close the frame"
+    (delete-frame))
+
+  (defadvice js:org:switch-to-buffer-other-window
+      (after supress-window-splitting activate)
+    "Delete the extra window if we're in a capture frame"
+    (if (equal "capture" (frame-parameter nil 'name))
+        (delete-other-windows)))
+
+  (defadvice js:org-capture:finalize
+      (after delete-capture-frame activate)
+    "Advise capture-finalize to close the frame"
+    (if (equal "capture" (frame-parameter nil 'name))
+        (delete-frame)))
+
+  (defun js:org:activate-capture-frame ()
+    "run org-capture in capture frame"
+    (select-frame-by-name "capture")
+    (switch-to-buffer (get-buffer-create "*scratch*"))
+    (org-capture))
+#+END_SRC
+
+** PARA / GTD
+
+To manage my oh-so modern life and all the digital information that entails, I
+use a personalised mixture of the [[https://gettingthingsdone.com/][Getting Things Done (GTD)]] and
+[[https://fortelabs.co/blog/para/][Projects—Areas—Resources—Archives (PARA)]] methodologies. It is very much a work
+in progress.
+
+*Sources:*
+
+- [[https://praxis.fortelabs.co/the-p-a-r-a-method-a-universal-system-for-organizing-digital-information-75a9da8bfb37/][The PARA Method: A Universal System for Organizing Digital Information]]
+- https://github.com/mwfogleman/.emacs.d/blob/master/michael.org
+- https://www.youtube.com/watch?v=Bpmkeh4D98s
+- https://gist.github.com/mwfogleman
+
+*** Review
+
+To keep track of what happens to you, it's handy to do a personal review at the
+end of every day, week, and month. I find it's not necessary to hold onto these
+files, so I dump them into =/tmp/=.
+
+#+BEGIN_SRC emacs-lisp
+  (defun js:review:daily ()
+    (interactive)
+    (let ((org-capture-templates
+           `(("d" "Review: Daily Review" entry (file+olp+datetree "/tmp/reviews.org")
+              (file ,(locate-user-emacs-file "org/templates/review-daily.org"))))))
+      (progn
+        (org-capture nil "d")
+        (js:org-capture:finalize t)
+        (org-speed-move-safe 'outline-up-heading)
+        (org-narrow-to-subtree)
+        (fetch-calendar)
+        (org-clock-in))))
+
+  (defun js:review:weekly ()
+    (interactive)
+    (let ((org-capture-templates
+           `(("w" "Review: Weekly Review" entry (file+olp+datetree "/tmp/reviews.org")
+              (file ,(locate-user-emacs-file "org/templates/review-weekly.org"))))))
+      (progn
+        (org-capture nil "w")
+        (js:org-capture:finalize t)
+        (org-speed-move-safe 'outline-up-heading)
+        (org-narrow-to-subtree)
+        (fetch-calendar)
+        (org-clock-in))))
+
+  (defun js:review:monthly ()
+    (interactive)
+    (let ((org-capture-templates
+           '(("m" "Review: Monthly Review" entry (file+olp+datetree "/tmp/reviews.org")
+              (file (locate-user-emacs-file "org/templates/review-monthly.org"))))))
+      (progn
+        (org-capture nil "m")
+        (js:org-capture:finalize t)
+        (org-speed-move-safe 'outline-up-heading)
+        (org-narrow-to-subtree)
+        (fetch-calendar)
+        (org-clock-in))))
+
+  (defun js:review:yearly ()
+    (interactive)
+    (let ((org-capture-templates
+           '(("y" "Review: Yearly Review" entry (file+olp+datetree "/tmp/reviews.org")
+              (file (locate-user-emacs-file "org/templates/review-yearly.org"))))))
+      (progn
+        (org-capture nil "y")
+        (js:org-capture:finalize t)
+        (org-speed-move-safe 'outline-up-heading)
+        (org-narrow-to-subtree)
+        (fetch-calendar)
+        (org-clock-in))))
+
+  (bind-keys :map sangster-map
+             :prefix-map review-map
+             :prefix "C-r"
+             ("d" . js:review:daily)
+             ("w" . js:review:weekly)
+             ("m" . js:review:monthly)
+             ("y" . js:review:yearly))
+
+  (f-touch "/tmp/reviews.org") ; TODO: why create this file ahead of time?
+#+END_SRC
+
+*** Projects
+
+A project is "any outcome that will take more than one action step to complete."
+As a result of implementing Tiago Forte's "PARA" system, I can ensure that I
+always have an up to date project list.
+
+#+BEGIN_SRC emacs-lisp
+  (defun js:projects:find-file ()
+    (interactive)
+    (find-file (expand-file-name "projects.org" org-directory))
+    (widen)
+    (beginning-of-buffer)
+    (re-search-forward "* ")
+    (beginning-of-line))
+
+  (defun js:projects:overview ()
+    (interactive)
+    (js:projects:find-file)
+    (org-narrow-to-subtree)
+    (org-sort-entries t ?p)
+    (org-columns))
+
+  (defun js:projects:overview:deadlines ()
+    (interactive)
+    (js:projects:find-file)
+    (org-narrow-to-subtree)
+    (org-sort-entries t ?d)
+    (org-columns))
+#+END_SRC
+
+**** Stuck Projects
+
+The concept of Stuck Projects comes from David Allen's GTD. A stuck project is a
+project without any action steps or tasks associated with it.
+
+Org-Mode has the ability to tell you which subtrees don't have tasks associated
+with them. You can also configure what it recognizes as a stuck project.
+Unfortunately, by default, this functionality picks up a lot of noise.
+
+This function creates an agenda of stuck projects that is restricted to my
+"Projects" subtree.
+
+#+BEGIN_SRC emacs-lisp
+  (defun js:org-agenda:list-stuck-projects ()
+    (interactive)
+    (js:projects:find-file)
+    (org-agenda nil "#" 'subtree))
+#+END_SRC
+
+*** Categories
+
+#+BEGIN_SRC emacs-lisp
+  (defun js:categories:find-file ()
+      (interactive)
+      (find-file (expand-file-name "categories.org" org-directory))
+      (widen)
+      (beginning-of-buffer)
+      (re-search-forward "* Categories")
+      (beginning-of-line))
+
+  (defun js:categories:overview ()
+      (interactive)
+      (js:categories:find-file)
+      (org-narrow-to-subtree)
+      (org-columns))
+#+END_SRC
+
+**** Auto-Complete Category List
+
+#+BEGIN_SRC emacs-lisp
+  (defun js:categories:list ()
+    (let ((headings nil)
+          (match-categories "ITEM=\"Categories\"")
+          (path-list (list (expand-file-name "categories.org" org-directory))))
+      (org-map-entries
+       (lambda ()
+         (org-map-entries
+          (lambda () (push (nth 4 (org-heading-components)) headings))
+          nil
+          'tree))
+       match-categories path-list)
+      (symbol-value 'headings)))
+
+  (defun js:categories:list:completing-read ()
+    (completing-read "Category: " (js:categories:list)))
+
+  (defun js:categories:org-set-property ()
+    (interactive)
+    (org-set-property "CATEGORY"
+     (completing-read "Category: " (js:categories:list))))
+#+END_SRC
+
+*** Todo Sequence
+
+#+BEGIN_SRC emacs-lisp
+  (customize-set-variable
+   'org-todo-keywords
+   '((sequence "TODO(t)" "NEXT(n)" "STARTED(s)" "WAITING(w)"
+               "SOMEDAY(.)" "MAYBE(m)"
+               "|" "DONE(x!)" "CANCELLED(c)")))
+
+  (customize-set-variable
+   'org-todo-keyword-faces
+   '(("TODO"      . (:weight bold :foreground "cyan"))
+     ("NEXT"      . (:weight bold :foreground "magenta"))
+     ("STARTED"   . (:weight bold :foreground "chocolate"))
+     ("WAITING"   . (:weight bold :foreground "khaki"))
+     ("SOMEDAY"   . (:weight bold :foreground "slate blue"))
+     ("MAYBE"     . (:weight bold :foreground "violet"))
+     ("DONE"      . (:weight bold :foreground "sea green"))
+     ("CANCELLED" . (:weight bold :foreground "dim gray" :strike-through t))))
+#+END_SRC
+
+** Export
+*** HTML
+**** Default doctype
+
+Use HTML5 by default.
+
+#+begin_src emacs-lisp
+  (customize-set-variable 'org-html-doctype "html5")
+#+end_src
+
+**** Default CSS
+
+This section adds default CSS to the =<head>= of exported HTML.
+
+*References:*
+
+ - [[https://stackoverflow.com/questions/19614104/how-to-tell-org-mode-to-embed-my-css-file-on-html-export][StackOverflow: how to tell org-mode to embed my css file on HTML export?]]
+ - [[https://emacs.stackexchange.com/questions/29131/get-contents-of-a-named-source-block][StackExchange: Get contents of a named source block]]
+ - [[https://orgmode.org/worg/dev/org-element-api.html][Org Element API]]
+ - [[http://ergoemacs.org/emacs/elisp_find-file_vs_with-temp-buffer.html][Emacs Lisp Text Processing: find-file vs with-temp-buffer]]
+
+***** Solarized CSS
+
+This CSS file is the [[https://thomasf.github.io/solarized-css/][Solarized CSS]] dark mode, with some modifications. This
+stylesheet is designed for org-mode.
+
+****** List of changes
+
+  - Remove fonts loaded from =fonts.googleapis.com=.
+  - =html= and =body=:
+    - Change =background-color= from =#073642= to =#121212=.
+    - Remove borders.
+    - Change =color= from =#839496= to =rgba(255, 255, 255, 0.6)=.
+  - =code=:
+    - Change =background-color= from =#002b36= to =rgba(255, 255, 255, 0.03)=.
+  - =pre=:
+    - Change =background-color= from =#002b36= to =rgba(255, 255, 255, 0.03)=.
+    - Change =box-shadow= (long).
+    - Change borders.
+  - =blockquote=:
+    - Create custom styling (there was none before).
+  - =.notes=:
+    - Custom style.
+  - =.linenr= (line numbers for exported source code):
+    - Custom style.
+  - Add border and spacing to tables.
+
+****** CSS file
+
+#+name: default-css
+#+begin_src css :results output :tangle no
+  article,
+  aside,
+  details,
+  figcaption,
+  figure,
+  footer,
+  header,
+  hgroup,
+  nav,
+  section,
+  summary {
+    display: block;
+  }
+  audio,
+  canvas,
+  video {
+    display: inline-block;
+  }
+  audio:not([controls]) {
+    display: none;
+    height: 0;
+  }
+  [hidden] {
+    display: none;
+  }
+  html {
+    font-family: sans-serif;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+  }
+  a:focus {
+    outline: thin dotted;
+  }
+  a:active,
+  a:hover {
+    outline: 0;
+  }
+  h1 {
+    font-size: 2em;
+  }
+  abbr[title] {
+    border-bottom: 1px dotted;
+  }
+  b,
+  strong {
+    font-weight: bold;
+  }
+  dfn {
+    font-style: italic;
+  }
+  mark {
+    background: #ff0;
+    color: #000;
+  }
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: monospace, serif;
+    font-size: 1em;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  q {
+    quotes: "\201C" "\201D" "\2018" "\2019";
+  }
+  small {
+    font-size: 80%;
+  }
+  sub,
+  sup {
+    font-size: 75%;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+  }
+  sup {
+    top: -0.5em;
+  }
+  sub {
+    bottom: -0.25em;
+  }
+  img {
+    border: 0;
+    max-width: 100%;
+  }
+  svg:not(:root) {
+    overflow: hidden;
+  }
+  figure {
+    margin: 0;
+  }
+  fieldset {
+    border: 1px solid #c0c0c0;
+    margin: 0 2px;
+    padding: 0.35em 0.625em 0.75em;
+  }
+  legend {
+    border: 0;
+    padding: 0;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+    font-size: 100%;
+    margin: 0;
+  }
+  button,
+  input {
+    line-height: normal;
+  }
+  button,
+  html input[type="button"],
+  input[type="reset"],
+  input[type="submit"] {
+    -webkit-appearance: button;
+    cursor: pointer;
+  }
+  button[disabled],
+  input[disabled] {
+    cursor: default;
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    box-sizing: border-box;
+    padding: 0;
+  }
+  input[type="search"] {
+    -webkit-appearance: textfield;
+    -moz-box-sizing: content-box;
+    -webkit-box-sizing: content-box;
+    box-sizing: content-box;
+  }
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-decoration {
+    -webkit-appearance: none;
+  }
+  button::-moz-focus-inner,
+  input::-moz-focus-inner {
+    border: 0;
+    padding: 0;
+  }
+  textarea {
+    overflow: auto;
+    vertical-align: top;
+  }
+  table {
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+  pre,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 700;
+  }
+  html {
+    background-color: #121212;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 1em;
+  }
+  body {
+    background-color: #121212;
+    margin: 0 auto;
+    max-width: 23cm;
+    padding: 1em;
+  }
+  code {
+    background-color: rgba(255, 255, 255, 0.03);
+    padding: 2px;
+  }
+  a {
+    color: #b58900;
+  }
+  a:visited {
+    color: #cb4b16;
+  }
+  a:hover {
+    color: #cb4b16;
+  }
+  h1 {
+    color: #d33682;
+  }
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: #859900;
+  }
+  pre {
+    background-color: rgba(0, 0, 0, 0.03);
+    padding: 1em;
+    border-left: 15px solid #002b36;
+    border-right: 2px solid #002b36;
+  }
+  pre code {
+    background-color: #002b36;
+  }
+  h1 {
+    font-size: 2.8em;
+  }
+  h2 {
+    font-size: 2.4em;
+  }
+  h3 {
+    font-size: 1.8em;
+  }
+  h4 {
+    font-size: 1.4em;
+  }
+  h5 {
+    font-size: 1.3em;
+  }
+  h6 {
+    font-size: 1.15em;
+  }
+  .tag {
+    background-color: #073642;
+    color: #d33682;
+    padding: 0 0.2em;
+  }
+  .todo,
+  .next,
+  .done {
+    color: #002b36;
+    background-color: #dc322f;
+    padding: 0 0.2em;
+  }
+  .tag {
+    -webkit-border-radius: 0.35em;
+    -moz-border-radius: 0.35em;
+    border-radius: 0.35em;
+  }
+  .TODO {
+    -webkit-border-radius: 0.2em;
+    -moz-border-radius: 0.2em;
+    border-radius: 0.2em;
+    background-color: #2aa198;
+  }
+  .NEXT {
+    -webkit-border-radius: 0.2em;
+    -moz-border-radius: 0.2em;
+    border-radius: 0.2em;
+    background-color: #268bd2;
+  }
+  .ACTIVE {
+    -webkit-border-radius: 0.2em;
+    -moz-border-radius: 0.2em;
+    border-radius: 0.2em;
+    background-color: #268bd2;
+  }
+  .DONE {
+    -webkit-border-radius: 0.2em;
+    -moz-border-radius: 0.2em;
+    border-radius: 0.2em;
+    background-color: #859900;
+  }
+  .WAITING {
+    -webkit-border-radius: 0.2em;
+    -moz-border-radius: 0.2em;
+    border-radius: 0.2em;
+    background-color: #cb4b16;
+  }
+  .HOLD {
+    -webkit-border-radius: 0.2em;
+    -moz-border-radius: 0.2em;
+    border-radius: 0.2em;
+    background-color: #d33682;
+  }
+  .NOTE {
+    -webkit-border-radius: 0.2em;
+    -moz-border-radius: 0.2em;
+    border-radius: 0.2em;
+    background-color: #d33682;
+  }
+  .CANCELLED {
+    -webkit-border-radius: 0.2em;
+    -moz-border-radius: 0.2em;
+    border-radius: 0.2em;
+    background-color: #859900;
+  }
+
+  blockquote {
+    font-style: italic;
+    color: #586e75;
+    display: block;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 15px 20px 15px 45px;
+    margin: 0 0 20px;
+
+    border-left: 15px solid #586e75;
+    border-right: 2px solid #586e75;
+  }
+  blockquote em, blockquote i {
+    font-style: normal;
+  }
+
+  .notes ul {
+    padding: 0;
+  }
+  .notes li {
+    list-style: none;
+    background: rgba(0, 0, 0, 0.03);
+    padding: 15px 20px 15px 45px;
+    margin: 0 0 20px;
+
+    border-left: 15px solid #d33682;
+    border-right: 2px solid #d33682;
+  }
+
+  blockquote,
+  pre,
+  .notes li {
+    box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
+                0 3px 1px -2px rgba(0, 0, 0, 0.12),
+                0 1px 5px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  .linenr {
+    opacity: 0.25;
+    font-size: 0.66em;
+    vertical-align: middle;
+    user-select: none;
+    cursor: default;
+  }
+
+  table { width: 100%; }
+  th, td {
+    padding: 1ex;
+  }
+  th {
+    background: #268bd2;
+    color: #121212;
+  }
+  th + th { border-left: 0.25ex solid #121212; }
+  td + td { border-left: 0.25ex solid #268bd2; }
+  .org-left { text-align: left; }
+  .org-right { text-align: right; }
+  .org-src-container {
+    background: #000;
+  }
+#+end_src
+
+***** Inline CSS in =<head>=
+
+This block creates a hook to insert the content of a named =begin_src= block
+into =<head>=, when exporting HTML.
+
+#+begin_src emacs-lisp
+  (defun js:org:inline-custom-css (exporter)
+    "Insert custom inline css"
+    (when (eq exporter 'html)
+      (let ((css-src-block-name "default-css"))
+        (customize-set-variable 'org-html-head-include-default-style nil)
+        (customize-set-variable
+         'org-html-head (concat
+                         "<style type=\"text/css\">\n"
+                         (save-excursion
+                           (with-temp-buffer
+                             (insert-file-contents (locate-user-emacs-file "README.org"))
+                             (cadr (org-babel-lob--src-info css-src-block-name))))
+                         "</style>\n")))))
+
+  (add-hook 'org-export-before-processing-hook #'js:org:inline-custom-css)
+#+end_src
+
+**** Additional HTML5 special blocks
+
+#+begin_src emacs-lisp
+  ; TODO this line fails to load because org-html-html5-elements isn't available
+  ; here. (add-to-list 'org-html-html5-elements '"cite")
+#+end_src
+
+This adds additional HTML5 "special block" types. When using the HTML5 docktype
+with org-mode HTML export, you can create certain HTML elements using "special
+blocks," like:
+
+#+begin_example
+  #+ATTR_HTML: :class some-class
+  #+begin\_TAG
+    Content!
+  #+end\_TAG
+#+end_example
+
+Get translated into HTML tags like:
+
+#+begin_export html
+  <TAG class="some-class">Content!</TAG>
+#+end_export
+
+**** Remove 'validate' link
+
+#+begin_src emacs-lisp
+  (customize-set-variable 'org-html-validation-link nil)
+#+end_src
+
+*** Export to [[https://revealjs.com][=reveal.js=]] slideshow
+
+#+BEGIN_SRC emacs-lisp
+  (use-package org-re-reveal)
+#+END_SRC
+
+*** Hugo
+
+#+BEGIN_SRC emacs-lisp
+  (use-package ox-hugo
+    :after ox)
+#+END_SRC
+
+**** Insert image and EXIF data
+
+#+begin_src emacs-lisp
+  (defgroup js:custom:www nil
+    "Websites settings."
+    :tag "Websites"
+    :group 'js:custom)
+  (defgroup js:custom:www:photography nil
+    "Photography gallery website settings."
+    :tag "Photography website"
+    :group 'js:custom:www)
+  (defcustom js:www:photography:watermark
+    "https://photography.example.com"
+    "The watermark used by `js:www:photography:process-image'."
+    :tag "Photography Website Image Watermark"
+    :group 'js:custom:www:photography
+    :type 'string)
+#+end_src
+
+#+BEGIN_SRC emacs-lisp
+  (defun js:www:photography:process-image ()
+    "Add a watermark to the given image, link to it, and append an
+         org-table with its EXIF data."
+    (interactive)
+    (let* ((file (read-file-name "Image File: "))
+           (base (file-name-nondirectory file))
+           (asset (js:www:watermark-image file js:www:photography:watermark "assets"))
+           (link (concat "[[./" asset "][" base "]]"))
+           (cmd (concat "exiv2 " asset))
+           (stdout (shell-command-to-string cmd))
+           (without-filename
+            (replace-regexp-in-string
+             "File name.+" (concat "File name : " link) stdout))
+           (fixed-copyright
+            (replace-regexp-in-string
+             "\\(Copyright *\\):.+" "\\1: Jon Sangster" without-filename))
+           (table (replace-regexp-in-string
+                   "\\(.+?\\):\\(.*\\)" "| \\1 | \\2 |" fixed-copyright)))
+      (save-excursion
+        (org-set-property "EXPORT_HUGO_CUSTOM_FRONT_MATTER"
+                          (concat ":useRelativeCover t :cover " base))
+        (insert "- [ ] [[file:" asset "][" base "]]\n\n"
+                "#+hugo: more\n"
+                "#+begin_details\n"
+                "#+begin_summary\nEXIF Data\n#+end_summary\n"
+                "| Attribute | Value |\n"
+                "|-----------|-------|\n"
+                table)
+        (delete-backward-char 1)
+        (insert "#+end_details\n")
+
+        (previous-line 2)
+        (org-table-align))
+      (forward-char 8)))
+
+  (defun js:www:asset-path (dirname src-path)
+    "Return the assets path for the given image. IE: ../dirname"
+    (let* ((dir (file-name-directory src-path))
+           (parent (file-name-directory (directory-file-name dir)))
+           (dest-dir (expand-file-name dirname parent))
+           (base (file-name-nondirectory src-path)))
+
+      (expand-file-name base dest-dir)))
+
+  (defun js:www:watermark-image (file label dirname)
+    "Use ImageMagick's 'convert' to create a watermarked image"
+    (let* ((dest (js:www:asset-path dirname file))
+           (cmd (concat "convert "
+                        file
+                        " -gravity SouthEast"
+                        " -stroke '#000c' -strokewidth 2 -annotate 0 '" label " '"
+                        " -stroke none    -fill white    -annotate 0 '" label " '"
+                        " " dest)))
+
+      (make-directory (file-name-directory dest) :PARENTS)
+      (shell-command cmd)
+      dest))
+
+  (defun js:www:set-ox-hugo-bundle-property ()
+    (interactive)
+    (org-set-property "EXPORT_FILE_NAME" "index")
+    (org-set-property "EXPORT_HUGO_BUNDLE" (org-hugo-slug (org-get-heading t t)))
+    )
+
+  (defun js:www:set-ox-hugo-file-name-property ()
+    (interactive)
+    (org-set-property "EXPORT_FILE_NAME" (org-hugo-slug (org-get-heading t t))))
+#+END_SRC
+
+* Email
+
+Setting up mu4e is complicated. Configuring your email client to interact with
+idiosyncratic IMAP servers is even more complicated. Here are some resources to
+help figure things out:
+
+- [[https://useplaintext.email/][Use plaintext email]]
+- [[https://git-send-email.io/][email + git = <3]]
+- [[https://github.com/daviwil/emacs-from-scratch][Emacs From Scratch]]
+  1. [[https://github.com/daviwil/emacs-from-scratch/blob/master/show-notes/Emacs-Mail-01.org][Streamline Your E-mail Management with mu4e]]
+  2. [[https://github.com/daviwil/emacs-from-scratch/blob/master/show-notes/Emacs-Mail-02.org][Managing Multiple Email Accounts with mu4e and mbsync]]
+  3. [[https://github.com/daviwil/emacs-from-scratch/blob/master/show-notes/Emacs-Mail-03.org][Compose and Send Email with Emacs]]
+  4. [[https://github.com/daviwil/emacs-from-scratch/blob/master/show-notes/Emacs-Mail-04.org][Enhance Your Emails with Org Mode]]
+  5. [[https://github.com/daviwil/emacs-from-scratch/blob/master/show-notes/Emacs-Mail-05.org][Craft an Email Workflow with Org Mode]]
+- [[https://rakhim.org/fastmail-setup-with-emacs-mu4e-and-mbsync-on-macos/][Fastmail setup with Emacs, mu4e and mbsync on macOS]]
+- [[http://cachestocaches.com/2017/3/complete-guide-email-emacs-using-mu-and-/][A Complete Guide to Email in Emacs using Mu and Mu4e]]
+- [[http://www.mycpu.org/read-email-in-emacs/][Emacs as Email Client]]
+- [[https://beb.ninja/post/email/][My E-Mail configuration: Nix & Home-Manager, Notmuch & mbsync]]
+- [[https://www.djcbsoftware.nl/code/mu/mu4e/Viewing-images-inline.html][A.4 Viewing images inline]]
+
+** mu4e
+
+=mu4e= is the Emacs UI to interface with the =mu= mail indexer.
+
+*Note:* This configuration assumes that mail is stored in =$XDG_DATA_HOME/mail=,
+which is not the default mail directory.
+
+*** Custom functions
+**** Restrict bookmarks to contexts
+
+mu4e searches and bookmarks aren't "context-aware" and will return mail from all
+your mailboxes. This function will modify your bookmarks so they only return
+results from a given mailbox directory (relative to =mu4e-maildir=).
+
+#+begin_src emacs-lisp
+  (defun js:mu4e:mbox-bookmarks (mbox bookmarks)
+    "Wrap the queries in BOOKMARKS so they are within MBOX.
+  This replaces each `:query' property with a wrapped version:
+  `(query) AND maildir:\"MBOX\"'."
+    (mapcar
+     (lambda (bkmrk)
+       (let* ((query (plist-get bkmrk :query))
+              (context-query (concat "(" query ") AND \"maildir:" mbox "\"")))
+         (if query (plist-put bkmrk :query context-query) query)))
+     bookmarks))
+#+end_src
+
+**** mu4e lisp files
+
+Most Emacs packages can be automatically installed by =straight= with
+=(use-package)=; however, =mu4e= is installed via =mu=: a package installed by
+the system package manager. This function returns the path to these lisp files
+on the local NixOS system.
+
+#+begin_src emacs-lisp
+  (defun js:nix:mu4e:site-lisp-directory ()
+    "Return the path to mu's mu4e lisp files. It can be set with
+  the `MU4E_SITE_LISP' environmental variable, or if unset, the
+  path will be derived from `nix path-info'. `nil' if mu isn't
+  installed."
+    (or (getenv "MU4E_SITE_LISP")
+        (with-temp-buffer
+          (when (eq 0 (js:macro:call-path-exe "nix" "path-info" "nixpkgs#mu"))
+            (concat (s-trim-right (buffer-string))
+                    "/share/emacs/site-lisp/mu4e")))))
+#+end_src
+
+**** Add =Reply-To= address to =org-store-link= plist
+
+When storing a link to an email entry, The capture template can refer to
+properties of the email, like =:to= and =:from= (See =org-capture-templates=);
+however, there are no properties for the =Reply-To= address.
+
+This function advises the mu4e function to add in =:replyto=, =:replytoname=,
+and =:replytoaddress=. If the email has no =Reply-To= field, these properties
+will be the same as =:from=.
+
+This advice is inspired by =(mu4e~org-store-link-message)= and
+=(org-link-store-props)=.
+
+#+begin_src emacs-lisp
+  (defun js:advice-after:mu4e~org-store-link-message:reply-to (&rest r)
+    "Advise `mu4e~org-store-link-message' to add `:replyto',
+  `:replytoname', and `:replytoaddress'."
+    (let* ((plist org-store-link-plist)
+           (msg      (mu4e-message-at-point))
+           (reply-to (or (car-safe (plist-get msg :reply-to))
+                         (car-safe (plist-get msg :from))))
+           (reply-to-adr (when reply-to (mu4e~org-address reply-to)))
+           (adr (mail-extract-address-components reply-to-adr)))
+
+      (when reply-to
+        (setq plist (plist-put plist :replyto reply-to-adr))
+        (setq plist (plist-put plist :replytoname (car adr)))
+        (setq plist (plist-put plist :replytoaddress (nth 1 adr))))))
+#+end_src
+
+Add the advice:
+
+#+begin_src emacs-lisp
+  (advice-add 'mu4e~org-store-link-message
+              :after #'js:advice-after:mu4e~org-store-link-message:reply-to)
+#+end_src
+
+**** Prepend "RE:" to email subject
+
+This function simply prepends "RE:" to a string, unless it's already there. It's
+intended to be used to generate reply subjects, when capturing a new TODO. It
+can be used in =org-capture-templates= like this:
+=%(js:email:subject-prepend-re \"%:subject\")=.
+
+#+begin_src emacs-lisp
+  (defun js:email:subject-prepend-re (subject)
+    "Prepend 'RE:' to SUBJECT, unless it's already there, or
+  empty."
+    (cond ((or (not subject) (string-equal "" subject)) "")
+          ((string-prefix-p "RE:" subject t) subject)
+          (t (concat "RE: " subject))))
+#+end_src
+
+**** Mailbox functions
+
+#+begin_src emacs-lisp
+  (defvar js:mu4e-query-trash "(flag:trashed OR maildir:/\\/Spam$/)"
+    "A mu4e search for trash or spam emails.")
+#+end_src
+
+#+begin_src emacs-lisp
+  (defun js:mu4e:not-trash (query)
+    (concat query " AND NOT " js:mu4e-query-trash))
+#+end_src
+
+*** Mailboxes
+
+#+begin_src emacs-lisp
+  (defgroup js:custom:mail nil
+    "Email account settings."
+    :tag "Email"
+    :group 'js:custom)
+#+end_src
+
+**** Personal
+
+#+begin_src emacs-lisp
+  (defgroup js:custom:mail:personal nil
+    "Personal email account settings."
+    :tag "Personal Email"
+    :group 'js:custom:mail)
+  (defcustom js:mail:personal:mailbox
+    "/personal/"
+    "The mbsync mailbox directory of my personal email account."
+    :tag "Personal Mailbox Subdirectory"
+    :group 'js:custom:mail:personal
+    :type 'string)
+  (defcustom js:mail:personal:user-name
+    "Jon Sangster"
+    "The user-name of my personal email account."
+    :tag "Personal Email User's Name"
+    :group 'js:custom:mail:personal
+    :type 'string)
+  (defcustom js:mail:personal:user-address
+    "personal@example.com"
+    "The email address of my personal email account."
+    :tag "Personal Email Address"
+    :group 'js:custom:mail:personal
+    :type 'string)
+#+end_src
+
+#+begin_src emacs-lisp
+  (let ((mbox js:mail:personal:mailbox))
+    (setq js:mu4e-mailbox-personal
+          `((user-full-name     . ,js:mail:personal:user-name)
+            (user-mail-address  . ,js:mail:personal:user-address)
+            (mu4e-drafts-folder . ,(concat mbox "Drafts"))
+            (mu4e-refile-folder . ,(concat mbox "Archive"))
+            (mu4e-sent-folder   . ,(concat mbox "Sent"))
+            (mu4e-trash-folder  . ,(concat mbox "Trash"))
+
+            (mu4e-maildir-shortcuts
+             . ((:maildir ,(concat mbox "Inbox")   :key ?i)
+                (:maildir ,(concat mbox "Drafts")  :key ?d)
+                (:maildir ,(concat mbox "Archive") :key ?a :hide-unread t)
+                (:maildir ,(concat mbox "Sent")    :key ?s :hide-unread t)
+                (:maildir ,(concat mbox "Spam")    :key ?S :hide-unread t)
+                (:maildir ,(concat mbox "Trash")   :key ?t :hide-unread t)))
+            (mu4e-bookmarks
+             . ,(js:mu4e:mbox-bookmarks mbox
+                 `((:name "Unread"       :key ?u
+                    :query ,(js:mu4e:not-trash "flag:unread"))
+                   (:name "Today's mail" :key ?t
+                    :query ,(js:mu4e:not-trash "date:today..now"))
+                   (:name "Last 7 days"  :key ?w :hide-unread t
+                    :query ,(js:mu4e:not-trash "date:7d..now"))
+                   (:name "With images"  :key ?p
+                    :query ,(js:mu4e:not-trash "mime:image/*"))))))))
+#+end_src
+
+#+begin_src emacs-lisp
+  (defun js:mu4e:make-context:personal ()
+        (make-mu4e-context
+         :name "Personal"
+         :vars js:mu4e-mailbox-personal
+         :match-func
+         (lambda (msg)
+           (when msg (string-prefix-p js:mail:personal:mailbox
+                                      (mu4e-message-field msg :maildir))))))
+#+end_src
+
+**** Work
+#+begin_src emacs-lisp
+  (defgroup js:custom:mail:work nil
+    "Work email account settings."
+    :tag "Work Email"
+    :group 'js:custom:mail)
+  (defcustom js:mail:work:mailbox
+    "/work/"
+    "The mbsync mailbox directory of my work email account."
+    :tag "Work Mailbox Subdirectory"
+    :group 'js:custom:mail:work
+    :type 'string)
+  (defcustom js:mail:work:user-name
+    "Jon Sangster"
+    "The user-name of my work email account."
+    :tag "Work Email User's Name"
+    :group 'js:custom:mail:work
+    :type 'string)
+  (defcustom js:mail:work:user-address
+    "work@example.com"
+    "The email address of my work email account."
+    :tag "Work Email Address"
+    :group 'js:custom:mail:work
+    :type 'string)
+  (defcustom js:mail:work:signature
+    (concat "Jon Sangster :: Professional professional\n"
+            "  work@example.com\n"
+            "  www.example.com")
+    "The signature line for my work email account."
+    :tag "Work Email Signature Line"
+    :group 'js:custom:mail:work
+    :type 'string)
+#+end_src
+
+#+begin_src emacs-lisp
+  (let ((mbox js:mail:work:mailbox))
+    (setq js:mu4e-mailbox-work
+          `((user-full-name     . ,js:mail:work:user-name)
+            (user-mail-address  . ,js:mail:work:user-address)
+            (mu4e-compose-signature . ,js:mail:work:signature)
+
+            (mu4e-drafts-folder . ,(concat mbox "[Gmail]/Drafts"))
+            (mu4e-sent-folder   . ,(concat mbox "[Gmail]/Sent Mail"))
+            (mu4e-refile-folder . ,(concat mbox "[Gmail]/All Mail"))
+            (mu4e-trash-folder  . ,(concat mbox "[Gmail]/Trash"))
+
+            ;; Don't move to "Sent Messages." Gmail/IMAP takes care of this.
+            (mu4e-sent-messages-behavior . delete)
+
+            (mu4e-maildir-shortcuts
+             . ((:maildir ,(concat mbox "Inbox") :key ?i)
+                (:maildir ,(concat mbox "GitHub") :key ?g)
+                (:maildir ,(concat mbox "Metrics") :key ?m)
+                (:maildir ,(concat mbox "[Gmail]/Important") :key ?I)
+                (:maildir ,(concat mbox "[Gmail]/Drafts")    :key ?d)
+                (:maildir ,(concat mbox "[Gmail]/All Mail")  :key ?a :hide-unread t)
+                (:maildir ,(concat mbox "[Gmail]/Sent Mail") :key ?s :hide-unread t)
+                (:maildir ,(concat mbox "[Gmail]/Spam")      :key ?S :hide-unread t)
+                (:maildir ,(concat mbox "[Gmail]/Trash")     :key ?t :hide-unread t)))
+            (mu4e-bookmarks
+             . ,(js:mu4e:mbox-bookmarks mbox
+                 `((:name "Unread"       :key ?u
+                    :query ,(js:mu4e:not-trash "flag:unread"))
+                   (:name "Today's mail" :key ?t
+                    :query ,(js:mu4e:not-trash "date:today..now"))
+                   (:name "Last 7 days"  :key ?w :hide-unread t
+                    :query ,(js:mu4e:not-trash "date:7d..now"))
+                   (:name "With images"  :key ?p
+                    :query ,(js:mu4e:not-trash "mime:image/*"))))))))
+#+end_src
+
+#+begin_src emacs-lisp
+  (defun js:mu4e:make-context:work ()
+    (make-mu4e-context
+     :name "Work"
+     :vars js:mu4e-mailbox-work
+     :match-func
+     (lambda (msg)
+       (when msg (string-prefix-p js:mail:work:mailbox
+                                  (mu4e-message-field msg :maildir))))))
+#+end_src
+
+*** Package configuration
+
+#+BEGIN_SRC emacs-lisp
+  (let ((mu4e-site-lisp (js:nix:mu4e:site-lisp-directory)))
+    (if (and mu4e-site-lisp (file-exists-p mu4e-site-lisp))
+        (use-package mu4e
+          :straight `(:local-repo ,mu4e-site-lisp :pre-build ())
+          :defer 10 ; Wait 10 seconds before starting.
+          :bind (:map sangster-map ("m" . mu4e))
+          :custom
+          (message-confirm-send t) ; Prompte before sending mail
+          (message-send-mail-function 'message-send-mail-with-sendmail)
+          (mu4e-attachments-dir "~/system/xdg/download/") ; TODO: hardcoded path
+          (mu4e-change-filenames-when-moving t)
+          (mu4e-compose-context-policy 'ask-if-none)
+          (mu4e-compose-format-flowed t) ; Use format=flowed mimetype
+          (mu4e-context-policy 'ask-if-none)
+          (mu4e-date-format "%Y-%m-%d")
+          (mu4e-headers-date-format "%Y-%m-%d")
+          (mu4e-headers-skip-duplicates t)
+          (mu4e-maildir (expand-file-name "mail" xdg/data-home))
+          (mu4e-update-interval (* 10 60)) ; Check for new mail every 10 mins.
+          (mu4e-use-fancy-chars t) ; Use unicode
+          (mu4e-view-show-addresses t) ; Show contact emails (vs. names only)
+          (mu4e-view-show-images nil) ; Avoid tracking images
+
+          ;; This setting allows to re-sync and re-index mail by pressing U
+          (mu4e-get-mail-command "mbsync -a")
+
+          :config
+          ;; TODO: Change custom callback
+          (setq mu4e-contexts (list (js:mu4e:make-context:personal)
+                                    (js:mu4e:make-context:work))
+
+                mu4e-headers-flagged-mark '("F" . "⚑")
+                mu4e-headers-passed-mark  '("P" . "⇉")
+                mu4e-headers-replied-mark '("R" . "↵")
+                mu4e-headers-seen-mark    '("S" . " ")
+                mu4e-headers-signed-mark  '("s" . "✍")
+                mu4e-headers-trashed-mark '("T" . "×")
+                mu4e-headers-unread-mark  '("u" . "✉")
+
+                mu4e-headers-thread-child-prefix         '("├>" . "├▶ ")
+                mu4e-headers-thread-last-child-prefix    '("└>" . "└▶ ")
+                mu4e-headers-thread-connection-prefix    '("│" . "│ ")
+                mu4e-headers-thread-orphan-prefix        '("┬>" . "┬▶ ")
+                mu4e-headers-thread-single-orphan-prefix '("─>" . "─▶ ")))))
+#+END_SRC
+
+The updated marks and thread prefixes are from [[https://mu-discuss.narkive.com/0A8jgd4g/fyi-nicer-threading-characters][mu-discuss@googlegroups.com: FYI
+nicer threading characters]].
+
+*** Better mu4e-headers-mode modeline
+
+Inspired by [[https://github.com/djcb/mu/issues/1410][Improve modeline in headers mode]].
+
+** mu4e-alert
+
+Show desktop notifications when new mail arrives.
+
+#+begin_src emacs-lisp
+  (use-package mu4e-alert
+    :after mu4e
+    :custom
+    (mu4e-alert-style 'libnotify)
+    (mu4e-alert-interesting-mail-query (js:mu4e:not-trash "flag:unread AND date:7d..now"))
+    :config
+    (mu4e-alert-enable-notifications)
+    (mu4e-alert-enable-mode-line-display))
+#+end_src
+
+** mu4e-thread-folding
+
+[[https://github.com/rougier/mu4e-thread-folding][This package]] allows you to fold threads under their original message.
+
+#+begin_src emacs-lisp
+  (use-package mu4e-thread-folding
+    :straight (mu4e-thread-folding :type git :host github
+                                   :repo "rougier/mu4e-thread-folding")
+    :hook
+    (mu4e-headers-mode . mu4e-thread-folding-mode)
+    :custom-face
+    (mu4e-thread-folding-root-unfolded-face
+     ((t (:extend t :background "#080833" :weight bold :overline nil :underline nil))))
+    (mu4e-thread-folding-root-folded-face
+     ((t (:extend t :background "grey5" :overline nil :underline nil))))
+    (mu4e-thread-folding-child-face
+     ((t (:extend t :background "gray5" :underline nil))))
+    (mu4e-thread-folding-root-prefix-face
+     ((t (:extend t :background "gray10" :overline nil :underline nil))))
+    :config
+    (add-to-list 'mu4e-header-info-custom
+                 '(:empty . (:name "Empty"
+                                   :shortname ""
+                                   :function (lambda (msg) "  "))))
+    (setq mu4e-headers-fields '((:empty        .   2)
+                                (:human-date   .  12)
+                                (:flags        .   6)
+                                (:mailing-list .  10)
+                                (:from         .  22)
+                                (:subject      . nil)))
+    :bind (:map mu4e-headers-mode-map
+                ("<tab>"     . #'mu4e-headers-toggle-at-point)
+                ("<S-tab>"    . #'mu4e-headers-toggle-fold-all)))
+#+end_src
+
+** org-mime
+*** Custom functions
+**** Format inline CSS
+
+#+begin_src emacs-lisp
+  (defun js:org-mime:inline-css ()
+    "Modify the inline CSS of exported HTML elements"
+    ;; Use "dark mode" source code blocks.
+    (org-mime-change-element-style
+     "pre" (format "color: %s; background-color: %s; padding: 0.5em;"
+                   "#d8d8d8" "#1b1e20"))
+    ;; Indent blockquotes.
+    (org-mime-change-element-style
+     "blockquote" "border-left: 2px solid gray; padding-left: 4px;"))
+#+end_src
+
+*** Package configuration
+
+#+begin_src emacs-lisp
+  (use-package org-mime
+    :hook
+    (message-send . org-mime-confirm-when-no-multipart) ; Prompt if HTML is missing
+    (org-mime-html . js:org-mime:inline-css)
+    (message-mode . (lambda ()
+                      (setq fill-column 72) ; Plaintext emails use 72 columns.
+                      (local-set-key (kbd "C-t M-o") 'org-mime-htmlize)))
+    (org-mime-src-mode . (lambda () (setq fill-column 72)))
+    (org-mode . (lambda ()
+                  (local-set-key (kbd "C-t M-o") 'org-mime-org-buffer-htmlize)
+                  (local-set-key (kbd "C-t M-O") 'org-mime-org-subtree-htmlize)))
+
+    :config
+    (setq org-mime-export-options '(:section-numbers nil :with-author nil :with-toc nil :with-latex dvipng)
+          org-mime-export-ascii 'utf-8))
+#+end_src

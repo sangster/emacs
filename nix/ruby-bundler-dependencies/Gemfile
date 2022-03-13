@@ -1,0 +1,17 @@
+# frozen_string_literal: true
+
+# This Gemfile lists runtime dependencies used by Emacs packages. Some are
+# available through normal Nix channels (ie: +nixpkgs.rubyModules+), but some
+# aren't.
+#
+# The main workflow is to use +nix run nixpkgs#bundix+ to generate a gemset.nix
+# file, which can then be loaded by Nix's built-in +bundlerEnv+ function. It's
+# unneccesary to use bundix's "magic" or "pack" features.
+source 'https://rubygems.org' do
+  # For the +rubocop+ Emacs package.
+  gem 'rubocop'
+  gem 'rubocop-rails'
+
+  # LSP language-server for the +lsp-solargraph+ Emacs package.
+  gem 'solargraph'
+end
